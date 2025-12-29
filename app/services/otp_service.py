@@ -6,7 +6,7 @@ from app.models.otp import OTPCode
 from app.core.security import hash_value, verify_hash
 
 
-OTP_EXPIRE_MINUTES = 5
+OTP_EXPIRE_MINUTES = 2
 MAX_ATTEMPTS = 5
 
 
