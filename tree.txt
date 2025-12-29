@@ -1,0 +1,34 @@
+﻿|-- app
+    |-- api
+        |-- routes
+            |-- admins.py
+            |-- auth.py
+            |-- users.py
+        |-- deps.py
+    |-- core
+        |-- config.py
+        |-- db.py
+        |-- security.py
+    |-- models
+        |-- otp.py
+        |-- user.py
+        |-- __init__.py
+    |-- schemas
+        |-- admin.py
+        |-- auth.py
+        |-- user.py
+    |-- services
+        |-- gmail_service.py
+        |-- otp_service.py
+    |-- initial_data.py
+    |-- main.py
+|-- .env
+|-- .env.example
+|-- .gitignore
+|-- client_secret.json
+|-- docker-compose.yml
+|-- Dockerfile
+|-- requirements.txt
+|-- test.py
+|-- tree.txt
+|-- tree_gen.bat
