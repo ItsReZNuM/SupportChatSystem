@@ -10,7 +10,7 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   api:
-    image: YOUR_DOCKERHUB_USERNAME/support-backend:latest
+    image: reznum85/support_backend:latest
     restart: always
     env_file:
       - .env
