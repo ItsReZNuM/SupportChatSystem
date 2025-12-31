@@ -8,6 +8,7 @@
     |-- core
         |-- config.py
         |-- db.py
+        |-- password_policy.py
         |-- security.py
     |-- models
         |-- otp.py
@@ -25,7 +26,6 @@
 |-- .env
 |-- .env.example
 |-- .gitignore
-|-- client_secret.json
 |-- docker-compose.yml
 |-- Dockerfile
 |-- requirements.txt
