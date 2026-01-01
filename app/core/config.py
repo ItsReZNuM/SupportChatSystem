@@ -30,6 +30,15 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_DIR: str = "logs"
 
+    REDIS_URL: str = "redis://localhost:6379/0"
+
+    CELERY_BROKER_URL: str = "redis://localhost:6379/1"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
+
+    OTP_RESEND_INTERVAL_SECONDS: int = 120
+    OTP_TTL_SECONDS: int = 120
+    OTP_MAX_ATTEMPTS: int = 5
+
 
     class Config:
         env_file = ".env"

@@ -1,4 +1,3 @@
-import logging
 import base64
 from email.message import EmailMessage
 
@@ -6,9 +5,6 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 from app.core.config import settings
-
-email_logger = logging.getLogger("email")
-
 
 def send_otp_email(to_email: str, code: str):
     try:
@@ -38,15 +34,6 @@ def send_otp_email(to_email: str, code: str):
             body={"raw": encoded_message}
         ).execute()
 
-        email_logger.info(
-            "OTP email sent | to=%s",
-            to_email
-        )
 
     except Exception as e:
-        email_logger.error(
-            "OTP email failed | to=%s | error=%s",
-            to_email, str(e),
-            exc_info=True
-        )
         raise

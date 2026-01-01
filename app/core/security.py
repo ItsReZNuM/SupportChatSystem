@@ -1,10 +1,7 @@
-import logging
 from datetime import datetime, timedelta
 from jose import jwt
 from argon2 import PasswordHasher
 from app.core.config import settings
-
-logger = logging.getLogger("auth")
 
 ph = PasswordHasher()
 ALGORITHM = "HS256"
@@ -18,7 +15,6 @@ def verify_password(hashed: str, plain: str) -> bool:
     try:
         return ph.verify(hashed, plain)
     except Exception:
-        logger.debug("Password verification failed")
         return False
 
 
@@ -43,10 +39,7 @@ def create_access_token(data: dict) -> str:
         settings.SECRET_KEY,
         algorithm=ALGORITHM
     )
-    logger.info(
-        "Access token created | user_id=%s",
-        data.get("sub")
-    )
+
     return token
 
 

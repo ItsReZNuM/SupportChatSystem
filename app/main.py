@@ -1,12 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.logging_config import setup_logging
 from app.api.routes import auth, users, admins
 from app.core.db import Base, engine, SessionLocal
 from app.initial_data import seed_initial_users
 
-setup_logging()
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Auth MVP")
