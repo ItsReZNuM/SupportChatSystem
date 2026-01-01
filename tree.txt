@@ -1,6 +1,12 @@
 ﻿|-- .github
     |-- workflows
         |-- docker.yml
+|-- alembic
+    |-- versions
+        |-- 9036f7f58244_initial.py
+    |-- env.py
+    |-- README
+    |-- script.py.mako
 |-- app
     |-- api
         |-- routes
@@ -11,8 +17,10 @@
     |-- core
         |-- config.py
         |-- db.py
-        |-- password_policy.py
+        |-- redis.py
         |-- security.py
+    |-- middleware
+        |-- ip_ban.py
     |-- models
         |-- otp.py
         |-- user.py
@@ -21,18 +29,30 @@
         |-- admin.py
         |-- auth.py
         |-- user.py
+    |-- security
+        |-- ip_ban.py
     |-- services
         |-- gmail_service.py
+        |-- otp_redis_service.py
         |-- otp_service.py
+    |-- tasks
+        |-- celery_app.py
+        |-- email_tasks.py
+        |-- __init__.py
     |-- initial_data.py
     |-- main.py
+|-- logs
+    |-- app.log
+    |-- auth.log
+    |-- celery.log
+    |-- error.log
 |-- .env
 |-- .env.example
 |-- .gitignore
+|-- alembic.ini
 |-- docker-compose.yml
 |-- Dockerfile
 |-- README.md
 |-- requirements.txt
-|-- test.py
 |-- tree.txt
 |-- tree_gen.bat

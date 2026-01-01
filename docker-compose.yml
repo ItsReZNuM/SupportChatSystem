@@ -1,23 +1,64 @@
 services:
-  db:
+  postgres:
     image: postgres:15
+    container_name: postgres
     restart: always
     environment:
-      POSTGRES_USER: auth_user
-      POSTGRES_PASSWORD: auth_pass
-      POSTGRES_DB: auth_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: app_db
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
 
   api:
-    image: reznum85/support_backend:latest
+    build: .
+    container_name: fastapi
     restart: always
+    depends_on:
+      - postgres
+      - redis
     env_file:
       - .env
     ports:
       - "8000:8000"
+
+  celery_worker:
+    build: .
+    container_name: celery_worker
+    restart: always
+    command: >
+      celery -A app.tasks.celery_app.celery
+      worker
+      --loglevel=INFO
     depends_on:
-      - db
+      - redis
+      - postgres
+    env_file:
+      - .env
+
+  flower:
+    build: .
+    container_name: flower
+    restart: always
+    command: >
+      celery -A app.tasks.celery_app.celery
+      flower
+      --port=5555
+    depends_on:
+      - redis
+    ports:
+      - "5555:5555"
+    env_file:
+      - .env
 
 volumes:
-  pgdata:
+  postgres_data:

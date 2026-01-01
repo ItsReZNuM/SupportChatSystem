@@ -1,6 +1,7 @@
 import enum
 from sqlalchemy import String, Boolean, DateTime, Enum
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Enum as SAEnum
 from datetime import datetime
 import uuid
 
@@ -30,7 +31,11 @@ class User(Base):
         nullable=False
     )
     role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole),
+        SAEnum(
+            UserRole,
+            name="userrole",
+            create_type=False
+        ),
         nullable=False
     )
     is_active: Mapped[bool] = mapped_column(

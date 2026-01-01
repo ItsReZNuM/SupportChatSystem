@@ -8,7 +8,10 @@ ALGORITHM = "HS256"
 
 
 def hash_password(password: str) -> str:
+    if len(password) < 8:
+        raise ValueError("Password must be at least 8 characters long")
     return ph.hash(password)
+
 
 
 def verify_password(hashed: str, plain: str) -> bool:

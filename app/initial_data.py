@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from app.models.user import User, UserRole
 from app.core.security import hash_password
 from app.core.config import settings
-from app.core.password_policy import validate_password
 
 
 def seed_initial_users(db: Session):
@@ -12,11 +11,6 @@ def seed_initial_users(db: Session):
     ).first()
     if exists:
         return
-
-    validate_password(settings.SEED_SUPERADMIN_PASSWORD)
-
-    if settings.SEED_ADMIN_EMAIL:
-        validate_password(settings.SEED_ADMIN_PASSWORD)
 
     superadmin = User(
         email=settings.SEED_SUPERADMIN_EMAIL,

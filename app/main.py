@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.middleware.ip_ban import ip_ban_middleware
 
 from app.api.routes import auth, users, admins
 from app.core.db import Base, engine, SessionLocal
 from app.initial_data import seed_initial_users
 
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title="Auth MVP")
+app.middleware("http")(ip_ban_middleware)
 
 app.add_middleware(
     CORSMiddleware,

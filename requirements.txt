@@ -10,6 +10,7 @@ psycopg2-binary
 python-jose[cryptography]
 argon2-cffi
 passlib
+alembic
 
 # --- Data Validation ---
 pydantic
