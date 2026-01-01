@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -7,6 +8,7 @@ from app.core.security import hash_password
 from app.schemas.admin import CreateAdminRequest
 from app.models.user import User, UserRole
 
+logger = logging.getLogger("auth")
 router = APIRouter(prefix="/admins", tags=["admins"])
 
 
@@ -14,7 +16,7 @@ router = APIRouter(prefix="/admins", tags=["admins"])
 def create_admin(
     data: CreateAdminRequest,
     db: Session = Depends(get_db),
-    _=Depends(require_superadmin)
+    superadmin=Depends(require_superadmin)
 ):
     admin = User(
         email=data.email,
@@ -23,4 +25,10 @@ def create_admin(
     )
     db.add(admin)
     db.commit()
+
+    logger.info(
+        "Admin created | email=%s | by_superadmin=%s",
+        data.email, superadmin.id
+    )
+
     return {"message": "Admin created"}

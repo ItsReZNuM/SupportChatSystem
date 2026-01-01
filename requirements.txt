@@ -1,23 +1,38 @@
+# --- Core ---
 fastapi
 uvicorn[standard]
 
+# -- Database --
 sqlalchemy
 psycopg2-binary
-alembic
 
+# --- Auth & Security ---
 python-jose[cryptography]
 argon2-cffi
 passlib
 
+# --- Data Validation ---
 pydantic
 pydantic-settings
 pydantic[email]
 
+# --- Email Service ---
 google-api-python-client
 google-auth
 google-auth-oauthlib
 
+# --- Misc ---
 python-dotenv
 
+# --- Dev & Testing ---
 pytest
 httpx
+
+# --- Redis ---
+redis
+
+# --- Celery ---
+celery
+
+# --- Flower (Celery Monitoring) ---
+flower

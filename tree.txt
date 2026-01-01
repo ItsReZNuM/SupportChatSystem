@@ -1,4 +1,7 @@
-﻿|-- app
+﻿|-- .github
+    |-- workflows
+        |-- docker.yml
+|-- app
     |-- api
         |-- routes
             |-- admins.py
@@ -28,6 +31,7 @@
 |-- .gitignore
 |-- docker-compose.yml
 |-- Dockerfile
+|-- README.md
 |-- requirements.txt
 |-- test.py
 |-- tree.txt

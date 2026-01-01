@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     GMAIL_CLIENT_SECRET: str
     GMAIL_REFRESH_TOKEN: str
     GMAIL_SENDER_EMAIL: str
+    OTP_RESEND_INTERVAL_MINUTES: int = 2
+
+    LOG_LEVEL: str = "INFO"
+    LOG_DIR: str = "logs"
+
 
     class Config:
         env_file = ".env"
