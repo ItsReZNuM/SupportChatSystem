@@ -4,6 +4,7 @@
 |-- alembic
     |-- versions
         |-- 9036f7f58244_initial.py
+        |-- eacc350a377c_add_otp_session_token.py
     |-- env.py
     |-- README
     |-- script.py.mako
@@ -41,11 +42,6 @@
         |-- __init__.py
     |-- initial_data.py
     |-- main.py
-|-- logs
-    |-- app.log
-    |-- auth.log
-    |-- celery.log
-    |-- error.log
 |-- .env
 |-- .env.example
 |-- .gitignore

@@ -3,12 +3,12 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-
+from app.core.config import settings
 from app.models.otp import OTPCode
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-OTP_EXPIRATION_MINUTES = 5
+OTP_EXPIRATION_SECONDS = settings.OTP_TTL_SECONDS
 MAX_ATTEMPTS = 5
 
 
@@ -25,18 +25,23 @@ def generate_session_token() -> str:
 
 
 def create_otp(db: Session, user_id, code: str) -> str:
+    # ۱. ابطال تمام کدهای قبلی این کاربر قبل از ساخت کد جدید
+    db.query(OTPCode).filter(
+        OTPCode.user_id == user_id,
+        OTPCode.consumed_at == None
+    ).update({"consumed_at": datetime.utcnow()})
+    
     session_token = generate_session_token()
 
     otp = OTPCode(
         user_id=user_id,
         session_token=session_token,
         code_hash=_hash_code(code),
-        expires_at=datetime.utcnow() + timedelta(minutes=OTP_EXPIRATION_MINUTES),
+        expires_at=datetime.utcnow() + timedelta(seconds=OTP_EXPIRATION_SECONDS),
     )
     db.add(otp)
     db.commit()
     db.refresh(otp)
-
     return session_token
 
 

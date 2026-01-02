@@ -3,12 +3,13 @@ from redis import Redis
 
 # ban durations in seconds
 BAN_STEPS = [
-    5 * 60,        # 5 min
-    15 * 60,       # 15 min
-    30 * 60,       # 30 min
-    60 * 60,       # 1 hour
-    6 * 60 * 60,   # 6 hours
-    24 * 60 * 60,  # 24 hours
+    60,             # 1 min
+    5 * 60,         # 5 min
+    30 * 60,        # 30 min
+    60 * 60,        # 1 hour
+    6 * 60 * 60,    # 6 hours
+    12 * 60 * 60,   # 12 hours
+    24 * 60 * 60,   # 24 hours
     7 * 24 * 60 * 60,   # 1 week
     30 * 24 * 60 * 60,  # 1 month
 ]

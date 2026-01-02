@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 import secrets
-
+from app.security.ip_ban import register_failed_attempt
 from app.core.db import get_db
 from app.models.user import User
 from app.core.security import verify_password, create_access_token
@@ -10,6 +10,7 @@ from app.schemas.auth import (
     LoginResponse,
     VerifyOTPRequest,
 )
+from app.core.redis import get_redis
 from app.services.otp_service import (
     create_otp,
     verify_otp,
@@ -23,18 +24,14 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 # LOGIN (email + password)
 # -------------------------------------------------------------------
 @router.post("/login", response_model=LoginResponse)
-def login(
-    data: LoginRequest,
-    request: Request,
-    db: Session = Depends(get_db),
-):
+def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    redis = get_redis()
     user = db.query(User).filter(User.email == data.email).first()
 
     if not user or not verify_password(user.password_hash, data.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-        )
+            # ۳. ثبت تلاش ناموفق برای بن پلکانی IP
+            register_failed_attempt(redis, request.client.host)
+            raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if not user.is_active:
         raise HTTPException(
@@ -62,21 +59,14 @@ def login(
 # VERIFY OTP (otp_token + code)
 # -------------------------------------------------------------------
 @router.post("/verify-otp")
-def verify_otp_endpoint(
-    data: VerifyOTPRequest,
-    db: Session = Depends(get_db),
-):
+def verify_otp_endpoint(data: VerifyOTPRequest, request: Request, db: Session = Depends(get_db)):
+    redis = get_redis()
     try:
-        otp = verify_otp(
-            db=db,
-            session_token=data.otp_token,
-            code=data.code,
-        )
+        otp = verify_otp(db=db, session_token=data.otp_token, code=data.code)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+        if str(e) == "Invalid OTP code":
+            register_failed_attempt(redis, request.client.host)
+        raise HTTPException(status_code=400, detail=str(e))
 
     user = otp.user
 
