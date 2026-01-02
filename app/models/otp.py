@@ -1,7 +1,8 @@
-from sqlalchemy import DateTime, Integer, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
-from datetime import datetime
 import uuid
+from sqlalchemy import Column, String, DateTime, Integer, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+from datetime import datetime
 
 from app.core.db import Base
 
@@ -9,22 +10,16 @@ from app.core.db import Base
 class OTPCode(Base):
     __tablename__ = "otp_codes"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False
-    )
-    code_hash: Mapped[str] = mapped_column(nullable=False)
-    expires_at: Mapped[datetime] = mapped_column(nullable=False)
-    attempts: Mapped[int] = mapped_column(
-        Integer,
-        default=0
-    )
-    consumed_at: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow
-    )
+    id = Column(Integer, primary_key=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    # 🔑 NEW
+    session_token = Column(String(64), unique=True, nullable=False, index=True)
+
+    code_hash = Column(String, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    attempts = Column(Integer, default=0, nullable=False)
+    consumed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user = relationship("User")
