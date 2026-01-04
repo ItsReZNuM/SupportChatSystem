@@ -13,9 +13,6 @@ class OTPCode(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
-    # 🔑 NEW
-    session_token = Column(String(64), unique=True, nullable=False, index=True)
-
     code_hash = Column(String, nullable=False)
     expires_at = Column(DateTime, nullable=False)
     attempts = Column(Integer, default=0, nullable=False)

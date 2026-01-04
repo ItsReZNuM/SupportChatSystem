@@ -24,39 +24,35 @@ def generate_session_token() -> str:
     return f"OTP_{secrets.token_urlsafe(32)}"
 
 
-def create_otp(db: Session, user_id, code: str) -> str:
-    # ۱. ابطال تمام کدهای قبلی این کاربر قبل از ساخت کد جدید
+def create_otp(db: Session, user_id, code: str) -> None:
     db.query(OTPCode).filter(
         OTPCode.user_id == user_id,
         OTPCode.consumed_at == None
     ).update({"consumed_at": datetime.utcnow()})
-    
-    session_token = generate_session_token()
 
     otp = OTPCode(
         user_id=user_id,
-        session_token=session_token,
         code_hash=_hash_code(code),
         expires_at=datetime.utcnow() + timedelta(seconds=OTP_EXPIRATION_SECONDS),
     )
     db.add(otp)
     db.commit()
-    db.refresh(otp)
-    return session_token
 
 
-def verify_otp(db: Session, session_token: str, code: str) -> OTPCode:
+
+def verify_otp(db: Session, user_id, code: str) -> OTPCode:
     otp = (
         db.query(OTPCode)
-        .filter(OTPCode.session_token == session_token)
+        .filter(
+            OTPCode.user_id == user_id,
+            OTPCode.consumed_at == None
+        )
+        .order_by(OTPCode.created_at.desc())
         .first()
     )
 
     if not otp:
-        raise ValueError("Invalid OTP token")
-
-    if otp.consumed_at:
-        raise ValueError("OTP already used")
+        raise ValueError("OTP not found")
 
     if otp.expires_at < datetime.utcnow():
         raise ValueError("OTP expired")

@@ -104,7 +104,7 @@ def send_otp_email(to_email: str, code: str):
                     
                     <div class="code-container">
                         <span class="code-text">{code}</span>
-                        <div class="expiry-tag">Expires in 5 minutes</div>
+                        <div class="expiry-tag">Expires in 2 minutes</div>
                     </div>
                     
                     <div class="divider"></div>

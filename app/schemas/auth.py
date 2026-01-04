@@ -7,11 +7,11 @@ class LoginRequest(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    otp_token: str
+    message: str
 
 
 class VerifyOTPRequest(BaseModel):
-    otp_token: str
+    email: EmailStr
     code: str
 
 class TokenResponse(BaseModel):
