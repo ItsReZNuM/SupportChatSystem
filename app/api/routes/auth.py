@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.orm import Session
 import secrets
 from app.security.ip_ban import register_failed_attempt
 from app.core.db import get_db
 from app.models.user import User
-from app.core.security import verify_password, create_access_token
+from app.core.security import verify_password, create_access_token, create_refresh_token
 from app.schemas.auth import (
     LoginRequest,
     LoginResponse,
@@ -59,14 +59,26 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
 # VERIFY OTP (otp_token + code)
 # -------------------------------------------------------------------
 @router.post("/verify-otp")
-def verify_otp_endpoint(data: VerifyOTPRequest, request: Request, db: Session = Depends(get_db)):
+def verify_otp_endpoint(
+    data: VerifyOTPRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
     redis = get_redis()
+
     try:
-        otp = verify_otp(db=db, session_token=data.otp_token, code=data.code)
-    except ValueError as e:
-        if str(e) == "Invalid OTP code":
-            register_failed_attempt(redis, request.client.host)
-        raise HTTPException(status_code=400, detail=str(e))
+        otp = verify_otp(
+            db=db,
+            session_token=data.otp_token,
+            code=data.code,
+        )
+    except ValueError:
+        register_failed_attempt(redis, request.client.host)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid OTP",
+        )
 
     user = otp.user
 
@@ -76,11 +88,30 @@ def verify_otp_endpoint(data: VerifyOTPRequest, request: Request, db: Session = 
             detail="User is inactive",
         )
 
-    # 🔐 اینجا بعداً JWT / Access Token صادر می‌کنی
-    # access_token = create_access_token(user.id)
     access_token = create_access_token(subject=str(user.id))
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
 
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-    }
+
+    # Access Token Cookie
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,    
+        samesite="lax",
+        max_age=60 * 15,
+        path="/",
+    )
+
+    # Refresh Token Cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=60 * 60 * 24 * 7,
+        path="/auth/refresh",
+    )
+
+    return {"message": "authenticated"}
