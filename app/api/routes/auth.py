@@ -115,3 +115,17 @@ def verify_otp_endpoint(
     )
 
     return {"message": "authenticated"}
+
+@router.post("/logout")
+def logout(response: Response):
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+    )
+
+    response.delete_cookie(
+        key="refresh_token",
+        path="/auth/refresh",
+    )
+
+    return {"message": "logged out"}
