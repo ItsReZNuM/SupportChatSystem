@@ -4,6 +4,7 @@
 |-- alembic
     |-- versions
         |-- 9036f7f58244_initial.py
+        |-- b7c9c25f13e7_remove_session_token_from_otp_codes.py
         |-- eacc350a377c_add_otp_session_token.py
     |-- env.py
     |-- README

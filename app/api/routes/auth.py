@@ -16,6 +16,7 @@ from app.services.otp_service import (
     verify_otp,
 )
 from app.tasks.email_tasks import send_otp_email_task
+from app.core.crypto import encrypt
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -63,8 +64,9 @@ def verify_otp_endpoint(data: VerifyOTPRequest, request: Request, db: Session = 
     access_token = create_access_token(subject=str(user.id))
 
     return {
-        "access_token": access_token,
-        "token_type": "bearer",
+    "access_token": encrypt(access_token),
+    "token_type": "bearer",
+    "encrypted": True
     }
 
 

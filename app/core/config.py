@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     OTP_TTL_SECONDS: int = 120
     OTP_MAX_ATTEMPTS: int = 5
 
+    FERNET_SECRET: str
 
     class Config:
         env_file = ".env"
