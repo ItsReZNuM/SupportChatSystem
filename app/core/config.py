@@ -41,6 +41,9 @@ class Settings(BaseSettings):
 
     FERNET_SECRET: str
 
+    OTP_SESSION_TTL_MINUTES:int = 10
+
+
     class Config:
         env_file = ".env"
 

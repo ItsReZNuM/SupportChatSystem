@@ -20,6 +20,9 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(admins.router)
+@app.get("/", tags=["Root"])
+def start_func():
+    return "Welcome To My Project"
 
 @app.on_event("startup")
 def startup():

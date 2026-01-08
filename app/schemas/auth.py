@@ -8,12 +8,17 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     message: str
+    otp_session_id: str
 
 
 class VerifyOTPRequest(BaseModel):
-    email: EmailStr
+    otp_session_id: str
     code: str
+
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+class ResendOTPRequest(BaseModel):
+    otp_session_id: str

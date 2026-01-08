@@ -123,7 +123,7 @@ def send_otp_email(to_email: str, code: str):
         message["Subject"] = "Your Verification Code"
 
         # متن ساده (fallback)
-        message.set_content(f"کد تأیید شما: {code}")
+        message.set_content(f"Your Verification Code: {code}")
 
         # HTML
         message.add_alternative(html_content, subtype="html")

@@ -13,10 +13,21 @@ class OTPCode(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
+    otp_session_id = Column(String(128), nullable=False, index=True)
+
     code_hash = Column(String, nullable=False)
+
+    # ⏳ عمر OTP code
     expires_at = Column(DateTime, nullable=False)
+
+    # ⏳ عمر session
+    session_expires_at = Column(DateTime, nullable=False)
+
     attempts = Column(Integer, default=0, nullable=False)
+    resend_count = Column(Integer, default=0, nullable=False)
+
+    last_sent_at = Column(DateTime, nullable=True)
     consumed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    user = relationship("User")
+    user = relationship("User", lazy="joined")
