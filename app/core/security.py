@@ -44,15 +44,3 @@ def create_access_token(subject: str) -> str:
         settings.SECRET_KEY,
         algorithm=ALGORITHM,
     )
-
-
-def create_refresh_token(data: dict) -> str:
-    expire = datetime.utcnow() + timedelta(
-        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
-    )
-    data.update({"exp": expire, "type": "refresh"})
-    return jwt.encode(
-        data,
-        settings.SECRET_KEY,
-        algorithm=ALGORITHM
-    )

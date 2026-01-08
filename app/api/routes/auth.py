@@ -4,7 +4,7 @@ import secrets
 from app.security.ip_ban import register_failed_attempt
 from app.core.db import get_db
 from app.models.user import User
-from app.core.security import verify_password, create_access_token, create_refresh_token
+from app.core.security import verify_password, create_access_token
 from app.schemas.auth import (
     LoginRequest,
     LoginResponse,
@@ -17,7 +17,6 @@ from app.services.otp_service import (
     verify_otp,
 )
 from app.tasks.email_tasks import send_otp_email_task
-from app.core.crypto import encrypt
 from datetime import datetime, timedelta
 from app.models.otp import OTPCode
 from app.services.otp_service import OTP_EXPIRATION_SECONDS, _hash_code
@@ -65,7 +64,7 @@ def verify_otp_endpoint(data: VerifyOTPRequest, request: Request, db: Session = 
     access_token = create_access_token(subject=str(otp.user_id))
 
     return {
-    "access_token": encrypt(access_token),
+    "access_token": access_token,
     "token_type": "bearer",
     "encrypted": True
     }
@@ -104,11 +103,6 @@ def logout(response: Response):
     response.delete_cookie(
         key="access_token",
         path="/",
-    )
-
-    response.delete_cookie(
-        key="refresh_token",
-        path="/auth/refresh",
     )
 
     return {"message": "logged out successfully"}
