@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     GMAIL_CLIENT_ID: str
     GMAIL_CLIENT_SECRET: str
     GMAIL_SENDER_EMAIL: str
+    GMAIL_REFRESH_TOKEN: str
     OTP_RESEND_INTERVAL_MINUTES: int = 2
 
     LOG_LEVEL: str = "INFO"

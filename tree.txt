@@ -12,7 +12,6 @@
 |-- app
     |-- api
         |-- routes
-            |-- admins.py
             |-- auth.py
             |-- users.py
         |-- deps.py
@@ -41,8 +40,9 @@
         |-- celery_app.py
         |-- email_tasks.py
         |-- __init__.py
-    |-- initial_data.py
     |-- main.py
+|-- tools
+    |-- hash_password.py
 |-- .env
 |-- .env.example
 |-- .gitignore

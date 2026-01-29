@@ -5,3 +5,4 @@ tree_gen.bat
 client_secret.json
 logs/*.*
 test.py
+note.txt
