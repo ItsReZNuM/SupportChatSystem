@@ -6,3 +6,4 @@ client_secret.json
 logs/*.*
 test.py
 note.txt
+.env.docker

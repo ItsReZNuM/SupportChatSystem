@@ -27,7 +27,7 @@ services:
       - postgres
       - redis
     env_file:
-      - .env
+      - .env.docker
     ports:
       - "8000:8000"
 
@@ -43,7 +43,7 @@ services:
       - redis
       - postgres
     env_file:
-      - .env
+      - .env.docker
 
   flower:
     build: .
@@ -58,7 +58,7 @@ services:
     ports:
       - "5555:5555"
     env_file:
-      - .env
+      - .env.docker
 
 volumes:
   postgres_data:
