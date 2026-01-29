@@ -3,9 +3,9 @@
         |-- docker.yml
 |-- alembic
     |-- versions
+        |-- 4dbdc82aaaba_add_otp_session_id_and_resend_fields_to_.py
         |-- 9036f7f58244_initial.py
-        |-- b7c9c25f13e7_remove_session_token_from_otp_codes.py
-        |-- eacc350a377c_add_otp_session_token.py
+        |-- 9217c91ec799_add_session_expires_at_to_otp_codes.py
     |-- env.py
     |-- README
     |-- script.py.mako

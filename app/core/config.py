@@ -15,15 +15,8 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str
     POSTGRES_PORT: int
 
-    SEED_SUPERADMIN_EMAIL: str
-    SEED_ADMIN_EMAIL: str | None = None
-
-    SEED_SUPERADMIN_PASSWORD: str
-    SEED_ADMIN_PASSWORD: str | None = None
-
     GMAIL_CLIENT_ID: str
     GMAIL_CLIENT_SECRET: str
-    GMAIL_REFRESH_TOKEN: str
     GMAIL_SENDER_EMAIL: str
     OTP_RESEND_INTERVAL_MINUTES: int = 2
 
