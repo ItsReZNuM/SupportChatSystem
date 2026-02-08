@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.core.config import settings
-from app.models.user import User, UserRole
+from app.models.user import User
 
 security = HTTPBearer()
 ALGORITHM = "HS256"
@@ -38,15 +38,4 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED
         )
 
-    return user
-
-
-def require_superadmin(
-    user: User = Depends(get_current_user)
-) -> User:
-    if user.role != UserRole.SUPERADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
-        )
     return user

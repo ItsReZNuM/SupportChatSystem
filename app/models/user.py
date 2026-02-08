@@ -7,12 +7,6 @@ import uuid
 
 from app.core.db import Base
 
-
-class UserRole(str, enum.Enum):
-    SUPERADMIN = "SUPERADMIN"
-    ADMIN = "ADMIN"
-
-
 class User(Base):
     __tablename__ = "users"
 
@@ -30,14 +24,7 @@ class User(Base):
         String(255),
         nullable=False
     )
-    role: Mapped[UserRole] = mapped_column(
-        SAEnum(
-            UserRole,
-            name="userrole",
-            create_type=False
-        ),
-        nullable=False
-    )
+
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         default=True
