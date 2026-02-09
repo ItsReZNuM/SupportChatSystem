@@ -14,7 +14,8 @@ async def ip_ban_middleware(request: Request, call_next):
         return JSONResponse(
             status_code=403,
             content={
-                "detail": f"Your IP is temporarily banned. Try again in {remaining} seconds."
+                "detail": f"Your IP is temporarily banned.",
+                "seconds": f"{remaining}"
             },
         )
 
