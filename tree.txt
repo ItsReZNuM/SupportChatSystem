@@ -6,6 +6,7 @@
         |-- 4dbdc82aaaba_add_otp_session_id_and_resend_fields_to_.py
         |-- 9036f7f58244_initial.py
         |-- 9217c91ec799_add_session_expires_at_to_otp_codes.py
+        |-- bed9ae616c9f_remove_role.py
     |-- env.py
     |-- README
     |-- script.py.mako
@@ -27,7 +28,6 @@
         |-- user.py
         |-- __init__.py
     |-- schemas
-        |-- admin.py
         |-- auth.py
         |-- user.py
     |-- security
@@ -44,11 +44,13 @@
 |-- tools
     |-- hash_password.py
 |-- .env
+|-- .env.docker
 |-- .env.example
 |-- .gitignore
 |-- alembic.ini
 |-- docker-compose.yml
 |-- Dockerfile
+|-- note.txt
 |-- README.md
 |-- requirements.txt
 |-- tree.txt

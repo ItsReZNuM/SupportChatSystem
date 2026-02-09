@@ -1,11 +1,10 @@
-import enum
-from sqlalchemy import String, Boolean, DateTime, Enum
+from sqlalchemy import String, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import Enum as SAEnum
 from datetime import datetime
 import uuid
 
 from app.core.db import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -29,6 +28,13 @@ class User(Base):
         Boolean,
         default=True
     )
+
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow

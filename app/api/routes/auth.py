@@ -39,14 +39,21 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     if not user.is_active:
         raise HTTPException(status_code=403, detail="User is inactive")
 
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have the right to login",
+        )
+
     otp_session_id, otp_code = create_otp(db, user.id)
     send_otp_email_task.delay(user.email, otp_code)
 
     return {
-    "message": "Verification code sent",
-    "otp_session_id": otp_session_id,
-    "expires_in": 600
+        "message": "Verification code sent",
+        "otp_session_id": otp_session_id,
+        "expires_in": 600
     }
+
 
 # -------------------------------------------------------------------
 # VERIFY OTP (otp_token + code)
