@@ -132,3 +132,46 @@ def verify_otp_endpoint(data: VerifyOTPRequest, request: Request, db: Session = 
         "token_type": "bearer",
         "encrypted": True,
     }
+
+
+
+# -------------------------------------------------------------------
+# RESEND OTP
+# -------------------------------------------------------------------
+@router.post("/resend-otp")
+def resend_otp(data: ResendOTPRequest, db: Session = Depends(get_db)):
+    otp = db.query(OTPCode).filter(
+        OTPCode.otp_session_id == data.otp_session_id,
+        OTPCode.consumed_at == None
+    ).first()
+
+    if not otp:
+        raise HTTPException(400, "Invalid session")
+
+    if otp.resend_count >= 3:
+        raise HTTPException(429, "Resend limit exceeded")
+
+    if datetime.utcnow() - otp.last_sent_at < timedelta(seconds=60):
+        raise HTTPException(429, "Please wait before resend")
+
+    new_code = f"{secrets.randbelow(1_000_000):06d}"
+
+    otp.code_hash = _hash_code(new_code)
+    otp.resend_count += 1
+    otp.last_sent_at = datetime.utcnow()
+    otp.expires_at = datetime.utcnow() + timedelta(seconds=OTP_EXPIRATION_SECONDS)
+
+    db.commit()
+
+    send_otp_email_task.delay(otp.user.email, new_code)
+    return {"message": "OTP resent"}
+
+
+@router.post("/logout")
+def logout(response: Response):
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+    )
+
+    return {"message": "logged out successfully"}
