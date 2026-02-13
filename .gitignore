@@ -7,3 +7,4 @@ logs/*.*
 test.py
 note.txt
 .env.docker
+test.html
