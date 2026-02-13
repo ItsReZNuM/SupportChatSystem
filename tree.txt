@@ -4,6 +4,7 @@
 |-- alembic
     |-- versions
         |-- 4dbdc82aaaba_add_otp_session_id_and_resend_fields_to_.py
+        |-- 63ae2ea2e8e2_add_is_admin_to_users.py
         |-- 9036f7f58244_initial.py
         |-- 9217c91ec799_add_session_expires_at_to_otp_codes.py
         |-- bed9ae616c9f_remove_role.py
@@ -14,6 +15,7 @@
     |-- api
         |-- routes
             |-- auth.py
+            |-- chat_http.py
             |-- users.py
         |-- deps.py
     |-- core
@@ -24,15 +26,22 @@
     |-- middleware
         |-- ip_ban.py
     |-- models
+        |-- chat.py
         |-- otp.py
         |-- user.py
         |-- __init__.py
+    |-- realtime
+        |-- chat_events.py
+        |-- rate_limit.py
+        |-- socketio_server.py
     |-- schemas
         |-- auth.py
+        |-- chat.py
         |-- user.py
     |-- security
         |-- ip_ban.py
     |-- services
+        |-- chat_service.py
         |-- gmail_service.py
         |-- otp_redis_service.py
         |-- otp_service.py
@@ -53,5 +62,7 @@
 |-- note.txt
 |-- README.md
 |-- requirements.txt
+|-- test.html
+|-- test.py
 |-- tree.txt
 |-- tree_gen.bat

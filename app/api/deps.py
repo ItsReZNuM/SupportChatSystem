@@ -4,10 +4,12 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from app.core.db import get_db
 from app.core.config import settings
 from app.models.user import User
+security_optional = HTTPBearer(auto_error=False)
 
 security = HTTPBearer()
 ALGORITHM = "HS256"
@@ -43,6 +45,13 @@ def get_current_user(
 
     return user
 
+def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_optional),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    if credentials is None:
+        return None
+    return get_current_user(credentials=credentials, db=db)
 
 def get_current_admin_user(
     user: User = Depends(get_current_user)
