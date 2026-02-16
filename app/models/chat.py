@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from sqlalchemy import (
@@ -51,8 +51,11 @@ class ChatConversation(Base):
 
     assigned_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),   
+        default=lambda: datetime.now(timezone.utc),  
+        nullable=False,
+    )
     participants = relationship("ChatParticipant", back_populates="conversation", cascade="all, delete-orphan")
     messages = relationship("ChatMessage", back_populates="conversation", cascade="all, delete-orphan")
     rating = relationship("ChatRating", back_populates="conversation", uselist=False, cascade="all, delete-orphan")
@@ -96,8 +99,11 @@ class ChatParticipant(Base):
     display_name: Mapped[str] = mapped_column(String(120), nullable=False)
     contact_email: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),  
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
     conversation = relationship("ChatConversation", back_populates="participants")
     user = relationship("User")  # optional backref if you want
 
@@ -136,8 +142,11 @@ class ChatMessage(Base):
     )
 
     body: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
     conversation = relationship("ChatConversation", back_populates="messages")
     sender = relationship("ChatParticipant")
 
@@ -173,7 +182,10 @@ class ChatRating(Base):
     )
 
     stars: Mapped[int] = mapped_column(nullable=False)  # validate in app (1..5)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),  
+        nullable=False,
+    )
     conversation = relationship("ChatConversation", back_populates="rating")
     agent = relationship("User")

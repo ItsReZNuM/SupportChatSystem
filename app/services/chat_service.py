@@ -101,6 +101,54 @@ def list_messages(db: Session, conversation_id: uuid.UUID, limit: int, offset: i
 
     return {"items": items, "total": total}
 
+def get_thread_simple(db: Session, conversation_id: uuid.UUID):
+    conv = db.get(ChatConversation, conversation_id)
+    if not conv:
+        raise ValueError("Conversation not found")
+
+    customer = db.scalar(
+        select(ChatParticipant).where(
+            ChatParticipant.conversation_id == conversation_id,
+            ChatParticipant.role == ParticipantRole.customer,
+        )
+    )
+
+    meta = {
+        "id": conv.id,
+        "label": conv.label,
+        "guest_email": customer.contact_email if customer and customer.guest_id is not None else None,
+        "guest_display_name": customer.display_name if customer and customer.guest_id is not None else None,
+    }
+
+    # 2) messages
+    total = db.scalar(
+        select(func.count()).select_from(ChatMessage).where(ChatMessage.conversation_id == conversation_id)
+    ) or 0
+
+    rows = db.execute(
+        select(
+            ChatMessage.id,
+            ChatMessage.body,
+            ChatMessage.sender_participant_id,
+            ChatParticipant.role,
+            ChatMessage.created_at,
+        )
+        .join(ChatParticipant, ChatParticipant.id == ChatMessage.sender_participant_id)
+        .where(ChatMessage.conversation_id == conversation_id)
+        .order_by(ChatMessage.created_at.asc())
+    ).all()
+
+    items = []
+    for msg_id, body, sender_pid, role, created_at in rows:
+        items.append({
+            "id": msg_id,
+            "sender_id": sender_pid,
+            "is_admin": role == ParticipantRole.agent,
+            "body": body,
+            "created_at": created_at,
+        })
+
+    return {"conversation": meta, "items": items, "total": total}
 
 def _get_customer_participant_for_sender(
     db: Session,

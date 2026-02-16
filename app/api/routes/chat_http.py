@@ -15,11 +15,10 @@ from app.schemas.chat import (
     ConversationOut,
     PaginatedConversations,
     RatingCreateIn,
+    SimpleChatThreadOut
 )
 
 router = APIRouter(prefix="/chat", tags=["chat"])
-
-
 
 # --------------------
 # Helpers
@@ -81,7 +80,7 @@ def create_conversation(
     )
 
 
-@router.get("/conversations/{conversation_id}/messages", response_model=PaginatedConversations)
+@router.get("/conversations/messages/{conversation_id}", response_model=PaginatedConversations)
 def get_messages(
     conversation_id: uuid.UUID,
     limit: int = 50,
@@ -92,7 +91,7 @@ def get_messages(
     return chat_service.list_messages(db, conversation_id, limit, offset)
 
 
-@router.post("/conversations/{conversation_id}/rating")
+@router.post("/conversations/rating/{conversation_id}")
 def rate_conversation(
     conversation_id: uuid.UUID,
     payload: RatingCreateIn,
@@ -133,3 +132,13 @@ def admin_list_conversations(
     return chat_service.admin_list_conversations(
         db, status_filter=status_filter, only_unassigned=only_unassigned, limit=limit, offset=offset
     )
+
+@router.get("/conversations/conversation_info/{conversation_id}/", response_model=SimpleChatThreadOut)
+def get_thread_simple(
+    conversation_id: uuid.UUID,
+    db: Session = Depends(get_db),
+):
+    try:
+        return chat_service.get_thread_simple(db, conversation_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))

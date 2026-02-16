@@ -56,7 +56,23 @@ class ConversationListItem(BaseModel):
     class Config:
         from_attributes = True
 
+class SimpleChatMessageOut(BaseModel):
+    id: uuid.UUID
+    sender_id: uuid.UUID
+    is_admin: bool
+    body: str
+    created_at: datetime
+    
+class ConversationMetaOut(BaseModel):
+    id: uuid.UUID
+    label: Optional[str] = None
+    guest_email: Optional[EmailStr] = None
+    guest_display_name: Optional[str] = None
 
+class SimpleChatThreadOut(BaseModel):
+    conversation: ConversationMetaOut
+    items: List[SimpleChatMessageOut]
+    total: int
 
 class PaginatedConversations(BaseModel):
     items: List[ConversationListItem]
