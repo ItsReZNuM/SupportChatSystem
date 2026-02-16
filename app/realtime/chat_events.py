@@ -76,17 +76,10 @@ async def connect(sid, environ, auth):
     if not ident:
         return False
     await sio.save_session(sid, ident)
+    
+    if ident.get("type") == "user" and ident.get("is_admin"):
+        await sio.enter_room(sid, ROOM_ADMINS)
     return True
-
-
-@sio.event
-async def admin_join_queue(sid, data=None):
-    sess = await sio.get_session(sid)
-    if sess["type"] != "user" or not sess.get("is_admin"):
-        await sio.emit("error", {"message": "Admin only"}, to=sid)
-        return
-    await sio.enter_room(sid, ROOM_ADMINS)
-    await sio.emit("ok", {"joined": "admins"}, to=sid)
 
 
 @sio.event

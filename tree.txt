@@ -7,7 +7,9 @@
         |-- 63ae2ea2e8e2_add_is_admin_to_users.py
         |-- 9036f7f58244_initial.py
         |-- 9217c91ec799_add_session_expires_at_to_otp_codes.py
+        |-- a7f19c840dc3_add_chat_system.py
         |-- bed9ae616c9f_remove_role.py
+        |-- d00801e71c80_add_tables.py
     |-- env.py
     |-- README
     |-- script.py.mako
