@@ -40,7 +40,7 @@ class ChatConversation(Base):
         index=True,
     )
 
-    label: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+    label: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
 
     assigned_agent_user_id: Mapped[uuid.UUID | None] = mapped_column(
         PG_UUID(as_uuid=True),
@@ -93,8 +93,8 @@ class ChatParticipant(Base):
         index=True,
     )
 
-    display_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    display_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    contact_email: Mapped[str] = mapped_column(String(255), nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -141,6 +141,8 @@ class ChatMessage(Base):
     conversation = relationship("ChatConversation", back_populates="messages")
     sender = relationship("ChatParticipant")
 
+    guest_display_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    guest_contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     __table_args__ = (
         Index("ix_chat_messages_conversation_created_at", "conversation_id", "created_at"),
     )

@@ -12,15 +12,15 @@ ParticipantRole = Literal["customer", "agent"]
 
 
 class ConversationCreateIn(BaseModel):
-    contact_email: Optional[EmailStr] = None
-    label: Optional[str] = Field(default=None, max_length=100)
-    display_name: Optional[str] = Field(default=None, max_length=120)
+    contact_email: EmailStr = None
+    label: str = Field(default=None, max_length=100)
+    display_name: str = Field(default=None, max_length=120)
 
 
 class ConversationOut(BaseModel):
     id: uuid.UUID
     status: ConversationStatus
-    label: Optional[str] = None
+    label: str = None
 
     assigned_agent_user_id: Optional[uuid.UUID] = None
     assigned_at: Optional[datetime] = None
@@ -34,16 +34,28 @@ class ConversationOut(BaseModel):
         from_attributes = True
 
 
+class LastMessageOut(BaseModel):
+    id: uuid.UUID
+    body: str
+    created_at: datetime
+
+
 class ConversationListItem(BaseModel):
     id: uuid.UUID
     status: ConversationStatus
-    label: Optional[str] = None
+    label: str | None = None
 
     assigned_agent_user_id: Optional[uuid.UUID] = None
     created_at: datetime
 
+    last_message: Optional[LastMessageOut] = None
+
+    customer_email: Optional[str] = None
+    customer_display_name: Optional[str] = None
+
     class Config:
         from_attributes = True
+
 
 
 class PaginatedConversations(BaseModel):
@@ -63,7 +75,9 @@ class MessageOut(BaseModel):
 
     sender_participant_id: uuid.UUID
     sender_role: ParticipantRole
-
+    guest_display_name: Optional[str] = None
+    guest_contact_email: Optional[EmailStr] = None
+    
     class Config:
         from_attributes = True
 

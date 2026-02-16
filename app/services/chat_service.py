@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from sqlalchemy import select, func, update, and_
 
 from app.models.user import User
@@ -94,6 +94,9 @@ def list_messages(db: Session, conversation_id: uuid.UUID, limit: int, offset: i
             "created_at": msg.created_at,
             "sender_participant_id": msg.sender_participant_id,
             "sender_role": role,
+            "display_name": msg.guest_display_name,
+            "contact_email": msg.guest_contact_email,
+
         })
 
     return {"items": items, "total": total}
@@ -154,13 +157,18 @@ def add_customer_message(
         current_user=current_user,
         guest_id=guest_id,
     )
+    is_guest = sender.guest_id is not None
 
     msg = ChatMessage(
         conversation_id=conversation_id,
         sender_participant_id=sender.id,
         body=body,
         created_at=datetime.utcnow(),
+
+        guest_display_name=sender.display_name ,
+        guest_contact_email=sender.contact_email ,
     )
+
     db.add(msg)
     db.commit()
     db.refresh(msg)
@@ -172,6 +180,9 @@ def add_customer_message(
         "created_at": msg.created_at,
         "sender_participant_id": msg.sender_participant_id,
         "sender_role": sender.role,
+        "display_name": msg.guest_display_name,
+        "contact_email": msg.guest_contact_email,
+
     }
 
 
@@ -251,7 +262,6 @@ def admin_accept_conversation_race_safe(
     if not row:
         return None
 
-    # agent participant ایجاد شود (uq: conversation_id+role)
     agent_p = db.scalar(select(ChatParticipant).where(
         ChatParticipant.conversation_id == conversation_id,
         ChatParticipant.role == ParticipantRole.agent,
@@ -262,7 +272,7 @@ def admin_accept_conversation_race_safe(
             role=ParticipantRole.agent,
             user_id=admin_user.id,
             guest_id=None,
-            display_name=None,
+            display_name=admin_user.email,
             contact_email=admin_user.email,
             created_at=datetime.utcnow(),
         )
@@ -286,8 +296,53 @@ def admin_close_conversation(db: Session, *, conversation_id: uuid.UUID) -> bool
     return True
 
 
-def admin_list_conversations(db: Session, *, status_filter: str | None, only_unassigned: bool, limit: int, offset: int):
-    q = select(ChatConversation)
+def admin_list_conversations(
+    db: Session,
+    *,
+    status_filter: str | None,
+    only_unassigned: bool,
+    limit: int,
+    offset: int,
+):
+    latest_message_subq = (
+        select(
+            ChatMessage.conversation_id,
+            func.max(ChatMessage.created_at).label("max_created_at"),
+        )
+        .group_by(ChatMessage.conversation_id)
+        .subquery()
+    )
+
+    latest_message_alias = aliased(ChatMessage)
+
+    customer_alias = aliased(ChatParticipant)
+
+    q = (
+        select(
+            ChatConversation,
+            latest_message_alias,
+            customer_alias,
+        )
+        .outerjoin(
+            latest_message_subq,
+            latest_message_subq.c.conversation_id == ChatConversation.id,
+        )
+        .outerjoin(
+            latest_message_alias,
+            and_(
+                latest_message_alias.conversation_id == ChatConversation.id,
+                latest_message_alias.created_at == latest_message_subq.c.max_created_at,
+            ),
+        )
+        .outerjoin(
+            customer_alias,
+            and_(
+                customer_alias.conversation_id == ChatConversation.id,
+                customer_alias.role == ParticipantRole.customer,
+            ),
+        )
+    )
+
     count_q = select(func.count()).select_from(ChatConversation)
 
     conds = []
@@ -301,19 +356,33 @@ def admin_list_conversations(db: Session, *, status_filter: str | None, only_una
         count_q = count_q.where(and_(*conds))
 
     total = db.scalar(count_q) or 0
-    rows = db.scalars(
-        q.order_by(ChatConversation.created_at.desc()).limit(limit).offset(offset)
+
+    rows = db.execute(
+        q.order_by(ChatConversation.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     ).all()
 
     items = []
-    for c in rows:
+
+    for conv, last_msg, customer in rows:
         items.append({
-            "id": c.id,
-            "status": c.status,
-            "label": c.label,
-            "assigned_agent_user_id": c.assigned_agent_user_id,
-            "created_at": c.created_at,
+            "id": conv.id,
+            "status": conv.status,
+            "label": conv.label,
+            "assigned_agent_user_id": conv.assigned_agent_user_id,
+            "created_at": conv.created_at,
+
+            "last_message": {
+                "id": last_msg.id,
+                "body": last_msg.body,
+                "created_at": last_msg.created_at,
+            } if last_msg else None,
+
+            "customer_email": customer.contact_email if customer else None,
+            "customer_display_name": customer.display_name if customer else None,
         })
+
     return {"items": items, "total": total}
 
 
