@@ -121,12 +121,28 @@ def admin_list_conversations(
         db, status_filter=status_filter, only_unassigned=only_unassigned, limit=limit, offset=offset
     )
 
+@router.get("/conversations/messages/{conversation_id}", response_model=PaginatedConversations)
+def get_messages(
+    conversation_id: uuid.UUID,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+):
+    limit = min(max(limit, 1), 200)
+    return chat_service.list_messages(db, conversation_id, limit, offset)
+
+
 @router.get("/conversations/conversation_info/{conversation_id}/", response_model=SimpleChatThreadOut)
 def get_thread_simple(
     conversation_id: uuid.UUID,
+    limit: int = 50,
+    offset: int = 0,
     db: Session = Depends(get_db),
 ):
+    limit = min(max(limit, 1), 200)
+    offset = max(offset, 0)
+
     try:
-        return chat_service.get_thread_simple(db, conversation_id)
+        return chat_service.get_thread_simple(db, conversation_id, limit, offset)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

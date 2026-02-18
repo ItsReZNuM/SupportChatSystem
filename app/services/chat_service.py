@@ -70,7 +70,7 @@ def create_conversation(
 def get_conversation(db: Session, conversation_id: uuid.UUID) -> ChatConversation | None:
     return db.get(ChatConversation, conversation_id)
 
-def get_thread_simple(db: Session, conversation_id: uuid.UUID):
+def get_thread_simple(db: Session, conversation_id: uuid.UUID, limit: int, offset: int):
     conv = db.get(ChatConversation, conversation_id)
     if not conv:
         raise ValueError("Conversation not found")
@@ -89,7 +89,6 @@ def get_thread_simple(db: Session, conversation_id: uuid.UUID):
         "guest_display_name": customer.display_name if customer and customer.guest_id is not None else None,
     }
 
-    # 2) messages
     total = db.scalar(
         select(func.count()).select_from(ChatMessage).where(ChatMessage.conversation_id == conversation_id)
     ) or 0
@@ -106,12 +105,13 @@ def get_thread_simple(db: Session, conversation_id: uuid.UUID):
         .join(ChatParticipant, ChatParticipant.id == ChatMessage.sender_participant_id)
         .where(ChatMessage.conversation_id == conversation_id)
         .order_by(ChatMessage.created_at.asc())
+        .limit(limit)
+        .offset(offset)
     ).all()
 
     items = []
     for msg_id, body, created_at, role, user_id, guest_id in rows:
         is_admin = (role == ParticipantRole.agent)
-
         sender_id = user_id if is_admin else guest_id
 
         items.append({
@@ -121,7 +121,6 @@ def get_thread_simple(db: Session, conversation_id: uuid.UUID):
             "body": body,
             "created_at": created_at,
         })
-
 
     return {"conversation": meta, "items": items, "total": total}
 
