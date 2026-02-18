@@ -168,7 +168,8 @@ async def send_message(sid, data):
         )
         msg["id"] = str(msg["id"])
         msg["conversation_id"] = str(msg["conversation_id"])
-        msg["sender_participant_id"] = str(msg["sender_participant_id"])
+        msg["sender_participant_id"] = str(msg["sender_id"])
+        msg["sender_id"] = str(msg["sender_id"])
         msg["created_at"] = msg["created_at"].isoformat()
 
         room = f"conv:{conv_id}"
@@ -278,7 +279,8 @@ async def admin_send_message(sid, data):
         )
         msg["id"] = str(msg["id"])
         msg["conversation_id"] = str(msg["conversation_id"])
-        msg["sender_participant_id"] = str(msg["sender_participant_id"])
+        msg["sender_participant_id"] = str(msg["sender_id"])
+        msg["sender_id"] = str(msg["sender_id"])
         msg["created_at"] = msg["created_at"].isoformat()
 
         await sio.emit("new_message", msg, room=f"conv:{conv_id}")

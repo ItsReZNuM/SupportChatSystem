@@ -1,36 +1,35 @@
 import socketio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.middleware.ip_ban import ip_ban_middleware
 from app.api.routes import auth, users
-from app.core.db import Base, engine, SessionLocal
-from app.realtime.socketio_server import socket_app, sio
-from app.realtime import chat_events
-
 from app.api.routes.chat_http import router as chat_http_router
+from app.realtime.socketio_server import sio  # همون sio اصلی
 
-app = FastAPI(title="Auth MVP")
-app.middleware("http")(ip_ban_middleware)
-app.mount("/ws", socket_app)
-app.add_middleware(
+fastapi_app = FastAPI(title="Auth MVP")
+fastapi_app.middleware("http")(ip_ban_middleware)
+
+fastapi_app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000",
+                   "http://172.19.0.1:3000"
+                   ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(chat_http_router)
 
-@app.get("/", tags=["Root"])
+fastapi_app.include_router(auth.router)
+fastapi_app.include_router(users.router)
+fastapi_app.include_router(chat_http_router)
+
+@fastapi_app.get("/", tags=["Root"])
 def start_func():
     return "Welcome To My Project"
 
 app = socketio.ASGIApp(
     sio,
-    other_asgi_app=app,
-    socketio_path="socket.io",   # پیش‌فرض همینه، ولی صریح نوشتنش خوبه
+    other_asgi_app=fastapi_app,
+    socketio_path="socket.io",
 )
-
-

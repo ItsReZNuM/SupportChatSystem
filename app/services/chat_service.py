@@ -179,7 +179,13 @@ def add_customer_message(
         current_user=current_user,
         guest_id=guest_id,
     )
+
     is_guest = sender.guest_id is not None
+    is_admin = False 
+
+    sender_id = sender.guest_id if is_guest else sender.user_id
+    if sender_id is None:
+        raise ValueError("Invalid sender identity (no user_id/guest_id)")
 
     msg = ChatMessage(
         conversation_id=conversation_id,
@@ -187,8 +193,8 @@ def add_customer_message(
         body=body,
         created_at=datetime.utcnow(),
 
-        guest_display_name=sender.display_name ,
-        guest_contact_email=sender.contact_email ,
+        guest_display_name=sender.display_name if is_guest else None,
+        guest_contact_email=sender.contact_email if is_guest else None,
     )
 
     db.add(msg)
@@ -200,12 +206,17 @@ def add_customer_message(
         "conversation_id": msg.conversation_id,
         "body": msg.body,
         "created_at": msg.created_at,
+
+        "sender_id": sender_id,
+        "is_admin": is_admin,
+
         "sender_participant_id": msg.sender_participant_id,
         "sender_role": sender.role,
-        "display_name": msg.guest_display_name,
-        "contact_email": msg.guest_contact_email,
 
+        "guest_display_name": msg.guest_display_name,
+        "guest_contact_email": msg.guest_contact_email,
     }
+
 
 
 def add_admin_message(
@@ -228,14 +239,19 @@ def add_admin_message(
     ))
 
     if not agent:
-        # اگر ادمین هنوز accept نکرده، پیام نباید بده
         raise ValueError("Admin is not assigned to this conversation")
+
+    is_admin = True
+    sender_id = admin_user.id  
 
     msg = ChatMessage(
         conversation_id=conversation_id,
         sender_participant_id=agent.id,
         body=body,
         created_at=datetime.utcnow(),
+
+        guest_display_name=None,
+        guest_contact_email=None,
     )
     db.add(msg)
     db.commit()
@@ -246,9 +262,17 @@ def add_admin_message(
         "conversation_id": msg.conversation_id,
         "body": msg.body,
         "created_at": msg.created_at,
+
+        "sender_id": sender_id,
+        "is_admin": is_admin,
+
         "sender_participant_id": msg.sender_participant_id,
         "sender_role": agent.role,
+
+        "guest_display_name": None,
+        "guest_contact_email": None,
     }
+
 
 
 def admin_accept_conversation_race_safe(
@@ -403,6 +427,11 @@ def admin_list_conversations(
 
             "customer_email": customer.contact_email if customer else None,
             "customer_display_name": customer.display_name if customer else None,
+            "customer_id": (
+                customer.user_id if customer and customer.user_id is not None
+                else customer.guest_id if customer
+                else None
+            ),
         })
 
     return {"items": items, "total": total}

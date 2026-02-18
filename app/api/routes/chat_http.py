@@ -15,7 +15,8 @@ from app.schemas.chat import (
     ConversationOut,
     PaginatedConversations,
     RatingCreateIn,
-    SimpleChatThreadOut
+    SimpleChatThreadOut,
+    PaginatedMessages,      
 )
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -121,7 +122,7 @@ def admin_list_conversations(
         db, status_filter=status_filter, only_unassigned=only_unassigned, limit=limit, offset=offset
     )
 
-@router.get("/conversations/messages/{conversation_id}", response_model=PaginatedConversations)
+@router.get("/conversations/messages/{conversation_id}", response_model=SimpleChatThreadOut) 
 def get_messages(
     conversation_id: uuid.UUID,
     limit: int = 50,
@@ -129,7 +130,8 @@ def get_messages(
     db: Session = Depends(get_db),
 ):
     limit = min(max(limit, 1), 200)
-    return chat_service.list_messages(db, conversation_id, limit, offset)
+    return chat_service.get_thread_simple(db, conversation_id, limit, offset)
+
 
 
 @router.get("/conversations/conversation_info/{conversation_id}/", response_model=SimpleChatThreadOut)

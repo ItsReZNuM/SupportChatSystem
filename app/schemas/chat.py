@@ -51,7 +51,8 @@ class ConversationListItem(BaseModel):
 
     customer_email: Optional[str] = None
     customer_display_name: Optional[str] = None
-
+    customer_id: Optional[uuid.UUID] = None
+    
     class Config:
         from_attributes = True
 
