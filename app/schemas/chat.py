@@ -27,7 +27,6 @@ class ConversationOut(BaseModel):
 
     created_at: datetime
 
-    # اگر مهمان بود و سرور guest_id ساخت:
     guest_id: Optional[uuid.UUID] = None
 
     class Config:

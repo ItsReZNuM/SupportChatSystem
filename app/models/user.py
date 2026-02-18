@@ -31,7 +31,7 @@ class User(Base):
 
     is_admin: Mapped[bool] = mapped_column(
         Boolean,
-        default=False,
+        default=True,
         nullable=False
     )
 

@@ -70,37 +70,6 @@ def create_conversation(
 def get_conversation(db: Session, conversation_id: uuid.UUID) -> ChatConversation | None:
     return db.get(ChatConversation, conversation_id)
 
-
-def list_messages(db: Session, conversation_id: uuid.UUID, limit: int, offset: int):
-    total = db.scalar(
-        select(func.count()).select_from(ChatMessage).where(ChatMessage.conversation_id == conversation_id)
-    ) or 0
-
-    rows = db.execute(
-        select(ChatMessage, ChatParticipant.role)
-        .join(ChatParticipant, ChatParticipant.id == ChatMessage.sender_participant_id)
-        .where(ChatMessage.conversation_id == conversation_id)
-        .order_by(ChatMessage.created_at.asc())
-        .limit(limit)
-        .offset(offset)
-    ).all()
-
-    items = []
-    for msg, role in rows:
-        items.append({
-            "id": msg.id,
-            "conversation_id": msg.conversation_id,
-            "body": msg.body,
-            "created_at": msg.created_at,
-            "sender_participant_id": msg.sender_participant_id,
-            "sender_role": role,
-            "display_name": msg.guest_display_name,
-            "contact_email": msg.guest_contact_email,
-
-        })
-
-    return {"items": items, "total": total}
-
 def get_thread_simple(db: Session, conversation_id: uuid.UUID):
     conv = db.get(ChatConversation, conversation_id)
     if not conv:
@@ -129,9 +98,10 @@ def get_thread_simple(db: Session, conversation_id: uuid.UUID):
         select(
             ChatMessage.id,
             ChatMessage.body,
-            ChatMessage.sender_participant_id,
-            ChatParticipant.role,
             ChatMessage.created_at,
+            ChatParticipant.role,
+            ChatParticipant.user_id,
+            ChatParticipant.guest_id,
         )
         .join(ChatParticipant, ChatParticipant.id == ChatMessage.sender_participant_id)
         .where(ChatMessage.conversation_id == conversation_id)
@@ -139,14 +109,19 @@ def get_thread_simple(db: Session, conversation_id: uuid.UUID):
     ).all()
 
     items = []
-    for msg_id, body, sender_pid, role, created_at in rows:
+    for msg_id, body, created_at, role, user_id, guest_id in rows:
+        is_admin = (role == ParticipantRole.agent)
+
+        sender_id = user_id if is_admin else guest_id
+
         items.append({
             "id": msg_id,
-            "sender_id": sender_pid,
-            "is_admin": role == ParticipantRole.agent,
+            "sender_id": sender_id,
+            "is_admin": is_admin,
             "body": body,
             "created_at": created_at,
         })
+
 
     return {"conversation": meta, "items": items, "total": total}
 

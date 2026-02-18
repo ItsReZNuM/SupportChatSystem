@@ -79,18 +79,6 @@ def create_conversation(
         guest_id=created_guest_id, 
     )
 
-
-@router.get("/conversations/messages/{conversation_id}", response_model=PaginatedConversations)
-def get_messages(
-    conversation_id: uuid.UUID,
-    limit: int = 50,
-    offset: int = 0,
-    db: Session = Depends(get_db),
-):
-    limit = min(max(limit, 1), 200)
-    return chat_service.list_messages(db, conversation_id, limit, offset)
-
-
 @router.post("/conversations/rating/{conversation_id}")
 def rate_conversation(
     conversation_id: uuid.UUID,
