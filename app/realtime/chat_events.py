@@ -1,42 +1,90 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 
 from app.realtime.socketio_server import sio
 from app.core.config import settings
-from app.core.db import SessionLocal  # اگر نداری، از همان engine/session پروژه‌ات استفاده کن
+from app.core.db import SessionLocal
 from app.models.user import User
 from app.services import chat_service
 from app.realtime.rate_limit import rate_limit_socket
-
-# ✅ این را مطابق پروژه‌ات تنظیم کن:
-# مثلا اگر در app/core/redis.py چیزی مثل "r" یا "redis" داری، اینجا درستش کن
-from app.core.redis import redis_client  # <- اگر نداری، یا بساز یا نام واقعی را جایگزین کن
+from app.core.redis import redis_client
+from urllib.parse import parse_qs
 
 ALGORITHM = "HS256"
-
 ROOM_ADMINS = "admins"
 
+
+# =========================================================
+# Helpers
+# =========================================================
 
 def _identity_key(session: dict) -> str:
     if session["type"] == "user":
         return f"user:{session['user_id']}"
     return f"guest:{session['guest_id']}"
 
-
-async def _authenticate_socket(auth) -> dict | None:
+def _get_query_params(environ: dict) -> dict[str, str]:
     """
-    auth: { token?, guest_id? }
+    Socket.IO ASGI environ معمولاً QUERY_STRING را می‌دهد.
+    parse_qs خروجی list می‌دهد، ما اولین مقدار را می‌گیریم.
     """
-    if not auth:
-        return None
+    raw = environ.get("QUERY_STRING") or ""
+    parsed = parse_qs(raw, keep_blank_values=False)
+    out: dict[str, str] = {}
+    for k, v in parsed.items():
+        if v:
+            out[k] = v[0]
+    return out
 
-    token = auth.get("token")
-    guest_id = auth.get("guest_id")
+def _public_msg_payload(msg: dict) -> dict:
+    """
+    خروجی استاندارد پیام برای فرانت:
+      id
+      conversation_id
+      body
+      created_at
+      sender_id
+      is_admin
+    """
+    return {
+        "id": str(msg["id"]),
+        "conversation_id": str(msg["conversation_id"]),
+        "body": msg["body"],
+        "created_at": msg["created_at"].isoformat()
+        if hasattr(msg["created_at"], "isoformat")
+        else msg["created_at"],
+        "sender_id": str(msg["sender_id"]),
+        "is_admin": bool(msg["is_admin"]),
+    }
 
+
+async def _authenticate_socket(auth, environ: dict | None = None) -> dict | None:
+    """
+    اولویت احراز هویت:
+      1) auth object (برای کلاینت‌های واقعی socket.io)
+      2) query string (برای Postman)
+    ورودی‌ها:
+      - auth: { token?, guest_id? }
+      - query: ?token=... یا ?guest_id=...
+    """
+    token = None
+    guest_id = None
+
+    # 1) auth
+    if auth:
+        token = auth.get("token")
+        guest_id = auth.get("guest_id")
+
+    # 2) query
+    if (not token and not guest_id) and environ is not None:
+        qp = _get_query_params(environ)
+        token = qp.get("token") or None
+        guest_id = qp.get("guest_id") or None
+
+    # user token
     if token:
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
@@ -70,15 +118,21 @@ async def _authenticate_socket(auth) -> dict | None:
     return None
 
 
+# =========================================================
+# Events
+# =========================================================
+
 @sio.event
 async def connect(sid, environ, auth):
-    ident = await _authenticate_socket(auth)
+    ident = await _authenticate_socket(auth, environ)
     if not ident:
         return False
+
     await sio.save_session(sid, ident)
-    
+
     if ident.get("type") == "user" and ident.get("is_admin"):
         await sio.enter_room(sid, ROOM_ADMINS)
+
     return True
 
 
@@ -97,31 +151,56 @@ async def join_conversation(sid, data):
     await sio.emit("ok", {"joined": room}, to=sid)
 
 
+# ---------------------------------------------------------
+# Thread (History)
+# ---------------------------------------------------------
+
 @sio.event
-async def conversation_history(sid, data):
+async def get_thread(sid, data):
     """
     data: { conversation_id, limit?, offset? }
     """
     conv_id = data.get("conversation_id")
-    limit = int(data.get("limit", 50))
-    offset = int(data.get("offset", 0))
-    limit = min(max(limit, 1), 200)
+    if not conv_id:
+        await sio.emit("error", {"message": "conversation_id is required"}, to=sid)
+        return
+
+    limit = min(max(int(data.get("limit", 50)), 1), 200)
+    offset = max(int(data.get("offset", 0)), 0)
 
     db: Session = SessionLocal()
     try:
-        res = chat_service.list_messages(db, uuid.UUID(conv_id), limit, offset)
-        # datetime -> iso
+        res = chat_service.get_conversation_thread(
+            db,
+            uuid.UUID(conv_id),
+            limit,
+            offset,
+        )
+
+        # serialize
+        res["conversation"]["id"] = str(res["conversation"]["id"])
+
         for it in res["items"]:
-            it["created_at"] = it["created_at"].isoformat()
             it["id"] = str(it["id"])
-            it["conversation_id"] = str(it["conversation_id"])
-            it["sender_participant_id"] = str(it["sender_participant_id"])
-        await sio.emit("history", res, to=sid)
+            it["sender_id"] = str(it["sender_id"])
+            it["created_at"] = it["created_at"].isoformat()
+
+        await sio.emit("thread", res, to=sid)
+
     except Exception as e:
         await sio.emit("error", {"message": str(e)}, to=sid)
     finally:
         db.close()
 
+
+@sio.event
+async def conversation_history(sid, data):
+    return await get_thread(sid, data)
+
+
+# ---------------------------------------------------------
+# Customer Send Message
+# ---------------------------------------------------------
 
 @sio.event
 async def send_message(sid, data):
@@ -130,8 +209,10 @@ async def send_message(sid, data):
     data: { conversation_id, body }
     """
     sess = await sio.get_session(sid)
+
     conv_id = data.get("conversation_id")
     body = (data.get("body") or "").strip()
+
     if not conv_id or not body:
         await sio.emit("error", {"message": "conversation_id/body required"}, to=sid)
         return
@@ -139,21 +220,20 @@ async def send_message(sid, data):
     # Rate limit
     ident = _identity_key(sess)
     key = f"rl:chat:msg:{ident}:{conv_id}"
-    # 30 پیام / 5 دقیقه برای guest، 100 پیام / 5 دقیقه برای user
+
     max_allowed = 100 if sess["type"] == "user" else 30
     allowed, ttl = rate_limit_socket(redis_client, key, 300, max_allowed)
+
     if not allowed:
         await sio.emit("rate_limited", {"retry_after": ttl}, to=sid)
         return
 
     db: Session = SessionLocal()
     try:
-        # current_user/guest_id را به service بده
         current_user = None
         guest_id = None
 
         if sess["type"] == "user":
-            # فقط id داریم؛ user object را لازم نداریم، ولی service current_user را می‌خواهد
             user_uuid = uuid.UUID(sess["user_id"])
             current_user = db.query(User).filter(User.id == user_uuid).first()
         else:
@@ -166,17 +246,18 @@ async def send_message(sid, data):
             current_user=current_user,
             guest_id=guest_id,
         )
-        msg["id"] = str(msg["id"])
-        msg["conversation_id"] = str(msg["conversation_id"])
-        msg["sender_participant_id"] = str(msg["sender_id"])
-        msg["sender_id"] = str(msg["sender_id"])
-        msg["created_at"] = msg["created_at"].isoformat()
 
-        room = f"conv:{conv_id}"
-        await sio.emit("new_message", msg, room=room)
+        payload = _public_msg_payload(msg)
 
-        # notify admins (برای اینکه همه ببینن یک چت جدید/پیام جدید آمد)
-        await sio.emit("admin_notify", {"conversation_id": conv_id, "type": "new_message"}, room=ROOM_ADMINS)
+        # ارسال به روم کانورسیشن
+        await sio.emit("new_message", payload, room=f"conv:{conv_id}")
+
+        # اطلاع به همه ادمین‌ها
+        await sio.emit(
+            "admin_notify",
+            {"conversation_id": conv_id, "type": "new_message"},
+            room=ROOM_ADMINS,
+        )
 
     except Exception as e:
         await sio.emit("error", {"message": str(e)}, to=sid)
@@ -184,12 +265,17 @@ async def send_message(sid, data):
         db.close()
 
 
+# ---------------------------------------------------------
+# Admin Accept
+# ---------------------------------------------------------
+
 @sio.event
 async def admin_accept(sid, data):
     """
     data: { conversation_id }
     """
     sess = await sio.get_session(sid)
+
     if sess["type"] != "user" or not sess.get("is_admin"):
         await sio.emit("error", {"message": "Admin only"}, to=sid)
         return
@@ -199,9 +285,9 @@ async def admin_accept(sid, data):
         await sio.emit("error", {"message": "conversation_id required"}, to=sid)
         return
 
-    # Rate limit accept هم بد نیست
     key = f"rl:chat:accept:user:{sess['user_id']}"
-    allowed, ttl = rate_limit_socket(redis_client, key, 10, 10)  # 10 accept / 10s
+    allowed, ttl = rate_limit_socket(redis_client, key, 10, 10)
+
     if not allowed:
         await sio.emit("rate_limited", {"retry_after": ttl}, to=sid)
         return
@@ -210,6 +296,7 @@ async def admin_accept(sid, data):
     try:
         admin_uuid = uuid.UUID(sess["user_id"])
         admin_user = db.query(User).filter(User.id == admin_uuid).first()
+
         if not admin_user or not admin_user.is_admin:
             await sio.emit("error", {"message": "Admin only"}, to=sid)
             return
@@ -219,20 +306,24 @@ async def admin_accept(sid, data):
             conversation_id=uuid.UUID(conv_id),
             admin_user=admin_user,
         )
+
         if not result:
             await sio.emit("accept_failed", {"conversation_id": conv_id}, to=sid)
             return
 
-        # admin را وارد room هم بکن تا realtime پیام‌ها را بگیرد
-        room = f"conv:{conv_id}"
-        await sio.enter_room(sid, room)
+        # وارد روم شود
+        await sio.enter_room(sid, f"conv:{conv_id}")
 
         result["conversation_id"] = str(result["conversation_id"])
         result["assigned_agent_user_id"] = str(result["assigned_agent_user_id"])
         result["assigned_at"] = result["assigned_at"].isoformat()
 
-        await sio.emit("accepted", result, room=room)
-        await sio.emit("admin_notify", {"conversation_id": conv_id, "type": "accepted"}, room=ROOM_ADMINS)
+        await sio.emit("accepted", result, room=f"conv:{conv_id}")
+        await sio.emit(
+            "admin_notify",
+            {"conversation_id": conv_id, "type": "accepted"},
+            room=ROOM_ADMINS,
+        )
 
     except Exception as e:
         await sio.emit("error", {"message": str(e)}, to=sid)
@@ -240,25 +331,31 @@ async def admin_accept(sid, data):
         db.close()
 
 
+# ---------------------------------------------------------
+# Admin Send Message
+# ---------------------------------------------------------
+
 @sio.event
 async def admin_send_message(sid, data):
     """
     data: { conversation_id, body }
     """
     sess = await sio.get_session(sid)
+
     if sess["type"] != "user" or not sess.get("is_admin"):
         await sio.emit("error", {"message": "Admin only"}, to=sid)
         return
 
     conv_id = data.get("conversation_id")
     body = (data.get("body") or "").strip()
+
     if not conv_id or not body:
         await sio.emit("error", {"message": "conversation_id/body required"}, to=sid)
         return
 
-    # Rate limit admin پیام
     key = f"rl:chat:admin_msg:user:{sess['user_id']}:{conv_id}"
-    allowed, ttl = rate_limit_socket(redis_client, key, 300, 200)  # 200 پیام / 5 دقیقه
+    allowed, ttl = rate_limit_socket(redis_client, key, 300, 200)
+
     if not allowed:
         await sio.emit("rate_limited", {"retry_after": ttl}, to=sid)
         return
@@ -267,6 +364,7 @@ async def admin_send_message(sid, data):
     try:
         admin_uuid = uuid.UUID(sess["user_id"])
         admin_user = db.query(User).filter(User.id == admin_uuid).first()
+
         if not admin_user or not admin_user.is_admin:
             await sio.emit("error", {"message": "Admin only"}, to=sid)
             return
@@ -277,13 +375,10 @@ async def admin_send_message(sid, data):
             admin_user=admin_user,
             body=body,
         )
-        msg["id"] = str(msg["id"])
-        msg["conversation_id"] = str(msg["conversation_id"])
-        msg["sender_participant_id"] = str(msg["sender_id"])
-        msg["sender_id"] = str(msg["sender_id"])
-        msg["created_at"] = msg["created_at"].isoformat()
 
-        await sio.emit("new_message", msg, room=f"conv:{conv_id}")
+        payload = _public_msg_payload(msg)
+
+        await sio.emit("new_message", payload, room=f"conv:{conv_id}")
 
     except Exception as e:
         await sio.emit("error", {"message": str(e)}, to=sid)
@@ -291,9 +386,14 @@ async def admin_send_message(sid, data):
         db.close()
 
 
+# ---------------------------------------------------------
+# Admin Close
+# ---------------------------------------------------------
+
 @sio.event
 async def admin_close(sid, data):
     sess = await sio.get_session(sid)
+
     if sess["type"] != "user" or not sess.get("is_admin"):
         await sio.emit("error", {"message": "Admin only"}, to=sid)
         return
@@ -305,40 +405,60 @@ async def admin_close(sid, data):
 
     db: Session = SessionLocal()
     try:
-        ok = chat_service.admin_close_conversation(db, conversation_id=uuid.UUID(conv_id))
+        ok = chat_service.admin_close_conversation(
+            db,
+            conversation_id=uuid.UUID(conv_id),
+        )
+
         if not ok:
             await sio.emit("error", {"message": "Conversation not found"}, to=sid)
             return
 
         await sio.emit("closed", {"conversation_id": conv_id}, room=f"conv:{conv_id}")
-        await sio.emit("admin_notify", {"conversation_id": conv_id, "type": "closed"}, room=ROOM_ADMINS)
+        await sio.emit(
+            "admin_notify",
+            {"conversation_id": conv_id, "type": "closed"},
+            room=ROOM_ADMINS,
+        )
 
     except Exception as e:
         await sio.emit("error", {"message": str(e)}, to=sid)
     finally:
         db.close()
 
+
+# ---------------------------------------------------------
+# Rate Conversation
+# ---------------------------------------------------------
+
 @sio.event
 async def rate_conversation(sid, data):
     try:
-        _ = await sio.get_session(sid)  # فعلاً فقط برای اینکه auth/session معتبر باشه
+        _ = await sio.get_session(sid)
 
         conversation_id = data.get("conversation_id")
         rating = data.get("rating")
-        feedback = data.get("feedback")  # فعلاً ذخیره نمی‌شود
+        feedback = data.get("feedback")
 
         if not conversation_id or rating is None:
-            await sio.emit("error", {"message": "conversation_id and rating required"}, to=sid)
+            await sio.emit(
+                "error",
+                {"message": "conversation_id and rating required"},
+                to=sid,
+            )
             return
 
         rating = int(rating)
         if rating < 1 or rating > 5:
-            await sio.emit("error", {"message": "rating must be between 1 and 5"}, to=sid)
+            await sio.emit(
+                "error",
+                {"message": "rating must be between 1 and 5"},
+                to=sid,
+            )
             return
 
-        from app.services.chat_service import create_rating_once
         with SessionLocal() as db:
-            r = create_rating_once(
+            r = chat_service.create_rating_once(
                 db,
                 conversation_id=uuid.UUID(conversation_id),
                 stars=rating,
@@ -349,11 +469,11 @@ async def rate_conversation(sid, data):
             {
                 "conversation_id": conversation_id,
                 "rating": r.stars,
-                "feedback": feedback,               # فقط echo
+                "feedback": feedback,
                 "created_at": r.created_at.isoformat(),
             },
-            room=f"conv:{conversation_id}"
+            room=f"conv:{conversation_id}",
         )
 
     except Exception as e:
-        await sio.emit("error", {"message": str(e)}, to=sid)
+        await sio.emit("error", {"message": str(e)})

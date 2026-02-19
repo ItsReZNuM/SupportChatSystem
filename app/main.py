@@ -12,9 +12,7 @@ fastapi_app.middleware("http")(ip_ban_middleware)
 
 fastapi_app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000",
-                   "http://172.19.0.1:3000"
-                   ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

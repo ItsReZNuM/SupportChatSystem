@@ -458,3 +458,62 @@ def create_rating_once(db: Session, *, conversation_id: uuid.UUID, stars: int) -
     db.commit()
     db.refresh(rating)
     return rating
+
+def get_conversation_thread(db: Session, conversation_id: uuid.UUID, limit: int, offset: int):
+    """
+    Thread = meta conversation + messages (برای فرانت)
+    """
+    conv = db.get(ChatConversation, conversation_id)
+    if not conv:
+        raise ValueError("Conversation not found")
+
+    customer = db.scalar(
+        select(ChatParticipant).where(
+            ChatParticipant.conversation_id == conversation_id,
+            ChatParticipant.role == ParticipantRole.customer,
+        )
+    )
+
+    meta = {
+        "id": conv.id,
+        "label": conv.label,
+        "guest_email": customer.contact_email if customer and customer.guest_id is not None else None,
+        "guest_display_name": customer.display_name if customer and customer.guest_id is not None else None,
+    }
+
+    total = db.scalar(
+        select(func.count()).select_from(ChatMessage).where(ChatMessage.conversation_id == conversation_id)
+    ) or 0
+
+    rows = db.execute(
+        select(
+            ChatMessage.id,
+            ChatMessage.body,
+            ChatMessage.created_at,
+            ChatParticipant.role,
+            ChatParticipant.user_id,
+            ChatParticipant.guest_id,
+        )
+        .join(ChatParticipant, ChatParticipant.id == ChatMessage.sender_participant_id)
+        .where(ChatMessage.conversation_id == conversation_id)
+        .order_by(ChatMessage.created_at.asc())
+        .limit(limit)
+        .offset(offset)
+    ).all()
+
+    items = []
+    for msg_id, body, created_at, role, user_id, guest_id in rows:
+        is_admin = (role == ParticipantRole.agent)
+        sender_id = user_id if is_admin else guest_id
+        if sender_id is None:
+            continue
+
+        items.append({
+            "id": msg_id,
+            "sender_id": sender_id,    
+            "is_admin": is_admin,       
+            "body": body,
+            "created_at": created_at,
+        })
+
+    return {"conversation": meta, "items": items, "total": total}
