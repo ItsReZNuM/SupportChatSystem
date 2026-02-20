@@ -6,6 +6,7 @@ from app.middleware.ip_ban import ip_ban_middleware
 from app.api.routes import auth, users
 from app.api.routes.chat_http import router as chat_http_router
 from app.realtime.socketio_server import sio  # همون sio اصلی
+import app.realtime.chat_events  # noqa: F401  ← register کردن همه @sio.event ها
 
 fastapi_app = FastAPI(title="Auth MVP")
 fastapi_app.middleware("http")(ip_ban_middleware)

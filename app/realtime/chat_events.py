@@ -124,11 +124,19 @@ async def _authenticate_socket(auth, environ: dict | None = None) -> dict | None
 
 @sio.event
 async def connect(sid, environ, auth):
+    print("CONNECT SID=", sid, "AUTH=", auth, "QS=", environ.get("QUERY_STRING"))
+
     ident = await _authenticate_socket(auth, environ)
+    print("IDENT=", ident)
+
     if not ident:
+        print("CONNECT REJECTED")
+
         return False
 
     await sio.save_session(sid, ident)
+    print("CONNECT OK")
+
 
     if ident.get("type") == "user" and ident.get("is_admin"):
         await sio.enter_room(sid, ROOM_ADMINS)
@@ -137,10 +145,12 @@ async def connect(sid, environ, auth):
 
 
 @sio.event
-async def join_conversation(sid, data):
+async def join_conversation(sid, data, *args):
     """
     data: { conversation_id }
     """
+    print("JOIN CALLED", sid, data)
+
     conv_id = data.get("conversation_id")
     if not conv_id:
         await sio.emit("error", {"message": "conversation_id is required"}, to=sid)
@@ -156,7 +166,7 @@ async def join_conversation(sid, data):
 # ---------------------------------------------------------
 
 @sio.event
-async def get_thread(sid, data):
+async def get_thread(sid, data, *args):
     """
     data: { conversation_id, limit?, offset? }
     """
@@ -194,7 +204,7 @@ async def get_thread(sid, data):
 
 
 @sio.event
-async def conversation_history(sid, data):
+async def conversation_history(sid, data, *args):
     return await get_thread(sid, data)
 
 
@@ -203,7 +213,7 @@ async def conversation_history(sid, data):
 # ---------------------------------------------------------
 
 @sio.event
-async def send_message(sid, data):
+async def send_message(sid, data, *args):
     """
     Customer sends message (user/guest)
     data: { conversation_id, body }
@@ -270,7 +280,7 @@ async def send_message(sid, data):
 # ---------------------------------------------------------
 
 @sio.event
-async def admin_accept(sid, data):
+async def admin_accept(sid, data, *args):
     """
     data: { conversation_id }
     """
@@ -336,7 +346,7 @@ async def admin_accept(sid, data):
 # ---------------------------------------------------------
 
 @sio.event
-async def admin_send_message(sid, data):
+async def admin_send_message(sid, data, *args):
     """
     data: { conversation_id, body }
     """
@@ -391,7 +401,7 @@ async def admin_send_message(sid, data):
 # ---------------------------------------------------------
 
 @sio.event
-async def admin_close(sid, data):
+async def admin_close(sid, data, *args):
     sess = await sio.get_session(sid)
 
     if sess["type"] != "user" or not sess.get("is_admin"):
@@ -432,7 +442,7 @@ async def admin_close(sid, data):
 # ---------------------------------------------------------
 
 @sio.event
-async def rate_conversation(sid, data):
+async def rate_conversation(sid, data, *args):
     try:
         _ = await sio.get_session(sid)
 
@@ -476,4 +486,4 @@ async def rate_conversation(sid, data):
         )
 
     except Exception as e:
-        await sio.emit("error", {"message": str(e)})
+        await sio.emit("error", {"message": str(e)}, to=sid)
