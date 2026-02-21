@@ -166,7 +166,7 @@ def add_customer_message(
     body: str,
     current_user: User | None,
     guest_id: uuid.UUID | None,
-) -> dict:
+) -> tuple[dict, bool]:
     conv = db.get(ChatConversation, conversation_id)
     if not conv:
         raise ValueError("Conversation not found")
@@ -180,8 +180,15 @@ def add_customer_message(
         guest_id=guest_id,
     )
 
+    existing_count = db.scalar(
+        select(func.count()).select_from(ChatMessage).where(
+            ChatMessage.conversation_id == conversation_id
+        )
+    ) or 0
+    is_new_conversation = existing_count == 0
+
     is_guest = sender.guest_id is not None
-    is_admin = False 
+    is_admin = False
 
     sender_id = sender.guest_id if is_guest else sender.user_id
     if sender_id is None:
@@ -215,7 +222,7 @@ def add_customer_message(
 
         "guest_display_name": msg.guest_display_name,
         "guest_contact_email": msg.guest_contact_email,
-    }
+    }, is_new_conversation
 
 
 
@@ -517,3 +524,34 @@ def get_conversation_thread(db: Session, conversation_id: uuid.UUID, limit: int,
         })
 
     return {"conversation": meta, "items": items, "total": total}
+
+def admin_ticket_counts(db: Session) -> dict:
+    rows = db.execute(
+        select(ChatConversation.status, func.count().label("count"))
+        .group_by(ChatConversation.status)
+    ).all()
+
+    counts = {"open": 0, "in_progress": 0, "closed": 0}
+    for status, count in rows:
+        counts[status] = count
+    return counts
+
+def get_conversation_summary(db: Session, conversation_id: uuid.UUID) -> dict:
+    conv = db.get(ChatConversation, conversation_id)
+    if not conv:
+        raise ValueError("Conversation not found")
+
+    customer = db.scalar(
+        select(ChatParticipant).where(
+            ChatParticipant.conversation_id == conversation_id,
+            ChatParticipant.role == ParticipantRole.customer,
+        )
+    )
+
+    guest_id = customer.guest_id if customer else None
+
+    return {
+        "id": str(conv.id),
+        "status": conv.status,
+        "guest_id": guest_id,
+    }

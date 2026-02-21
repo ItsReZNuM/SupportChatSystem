@@ -19,6 +19,8 @@ from app.schemas.chat import (
     PaginatedMessages,      
 )
 
+VALID_TICKET_STATUSES = {"open", "in_progress", "closed"}
+
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 # --------------------
@@ -148,3 +150,15 @@ def get_thread_simple(
         return chat_service.get_thread_simple(db, conversation_id, limit, offset)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+# --------------------
+# Admin Tickets
+# --------------------
+
+@router.get("/dashboard/tickets")
+def admin_ticket_counts(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin_user),
+):
+    return chat_service.admin_ticket_counts(db)

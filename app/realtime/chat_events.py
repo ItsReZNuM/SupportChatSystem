@@ -3,7 +3,8 @@ from __future__ import annotations
 import uuid
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
-
+from sqlalchemy import select
+from datetime import datetime
 from app.realtime.socketio_server import sio
 from app.core.config import settings
 from app.core.db import SessionLocal
@@ -12,6 +13,7 @@ from app.services import chat_service
 from app.realtime.rate_limit import rate_limit_socket
 from app.core.redis import redis_client
 from urllib.parse import parse_qs
+from app.models.chat import ChatParticipant, ParticipantRole
 
 ALGORITHM = "HS256"
 ROOM_ADMINS = "admins"
@@ -124,19 +126,11 @@ async def _authenticate_socket(auth, environ: dict | None = None) -> dict | None
 
 @sio.event
 async def connect(sid, environ, auth):
-    print("CONNECT SID=", sid, "AUTH=", auth, "QS=", environ.get("QUERY_STRING"))
-
     ident = await _authenticate_socket(auth, environ)
-    print("IDENT=", ident)
-
     if not ident:
-        print("CONNECT REJECTED")
-
         return False
 
     await sio.save_session(sid, ident)
-    print("CONNECT OK")
-
 
     if ident.get("type") == "user" and ident.get("is_admin"):
         await sio.enter_room(sid, ROOM_ADMINS)
@@ -227,7 +221,6 @@ async def send_message(sid, data, *args):
         await sio.emit("error", {"message": "conversation_id/body required"}, to=sid)
         return
 
-    # Rate limit
     ident = _identity_key(sess)
     key = f"rl:chat:msg:{ident}:{conv_id}"
 
@@ -249,7 +242,7 @@ async def send_message(sid, data, *args):
         else:
             guest_id = uuid.UUID(sess["guest_id"])
 
-        msg = chat_service.add_customer_message(
+        msg, is_new_conversation = chat_service.add_customer_message(
             db,
             conversation_id=uuid.UUID(conv_id),
             body=body,
@@ -259,15 +252,58 @@ async def send_message(sid, data, *args):
 
         payload = _public_msg_payload(msg)
 
-        # ارسال به روم کانورسیشن
         await sio.emit("new_message", payload, room=f"conv:{conv_id}")
 
-        # اطلاع به همه ادمین‌ها
-        await sio.emit(
-            "admin_notify",
-            {"conversation_id": conv_id, "type": "new_message"},
-            room=ROOM_ADMINS,
-        )
+        conversation = chat_service.get_conversation_summary(db, uuid.UUID(conv_id))
+
+        if is_new_conversation:
+            customer = db.scalar(
+                select(ChatParticipant).where(
+                    ChatParticipant.conversation_id == uuid.UUID(conv_id),
+                    ChatParticipant.role == ParticipantRole.customer,
+                )
+            )
+            customer_id = str(customer.guest_id or customer.user_id) if customer else None
+
+            await sio.emit(
+                "admin_notify",
+                {
+                    "type": "new_conversation",
+                    "conversation": {
+                        "id": conv_id,
+                        "status": conversation["status"],
+                        "label": None,
+                        "assigned_agent_user_id": None,
+                        "created_at": datetime.utcnow().isoformat(),
+                        "customer_display_name": customer.display_name if customer else None,
+                        "customer_email": customer.contact_email if customer else None,
+                        "customer_id": customer_id,
+                        "last_message": {
+                            "body": payload["body"],
+                            "created_at": payload["created_at"],
+                        },
+                    },
+                },
+                room=ROOM_ADMINS,
+            )
+        else:
+            await sio.emit(
+                "admin_notify",
+                {
+                    "type": "new_message",
+                    "conversation_id": conv_id,
+                    "last_message": {
+                        "body": payload["body"],
+                        "created_at": payload["created_at"],
+                    },
+                    "conversation": {
+                        "id": conv_id,
+                        "status": conversation["status"],
+                        "guest_id": str(conversation["guest_id"]) if conversation.get("guest_id") else None,
+                    },
+                },
+                room=ROOM_ADMINS,
+            )
 
     except Exception as e:
         await sio.emit("error", {"message": str(e)}, to=sid)
@@ -347,9 +383,6 @@ async def admin_accept(sid, data, *args):
 
 @sio.event
 async def admin_send_message(sid, data, *args):
-    """
-    data: { conversation_id, body }
-    """
     sess = await sio.get_session(sid)
 
     if sess["type"] != "user" or not sess.get("is_admin"):
@@ -389,6 +422,19 @@ async def admin_send_message(sid, data, *args):
         payload = _public_msg_payload(msg)
 
         await sio.emit("new_message", payload, room=f"conv:{conv_id}")
+
+        await sio.emit(
+            "admin_notify",
+            {
+                "type": "new_message",
+                "conversation_id": conv_id,
+                "last_message": {
+                    "body": payload["body"],
+                    "created_at": payload["created_at"],
+                },
+            },
+            room=ROOM_ADMINS,
+        )
 
     except Exception as e:
         await sio.emit("error", {"message": str(e)}, to=sid)
@@ -487,3 +533,4 @@ async def rate_conversation(sid, data, *args):
 
     except Exception as e:
         await sio.emit("error", {"message": str(e)}, to=sid)
+        
