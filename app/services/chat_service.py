@@ -277,6 +277,7 @@ def add_admin_message(
     is_admin = True
     sender_id = admin_user.id  
 
+
     msg = ChatMessage(
         conversation_id=conversation_id,
         sender_participant_id=agent.id,
@@ -286,6 +287,11 @@ def add_admin_message(
         guest_display_name=None,
         guest_contact_email=None,
     )
+    
+    if conv.first_response_seconds is None and conv.assigned_at is not None:
+        delta = datetime.utcnow() - conv.assigned_at.replace(tzinfo=None)
+        conv.first_response_seconds = delta.total_seconds()
+    
     db.add(msg)
     db.commit()
     db.refresh(msg)
@@ -583,4 +589,39 @@ def get_conversation_summary(db: Session, conversation_id: uuid.UUID) -> dict:
         "id": str(conv.id),
         "status": conv.status,
         "guest_id": guest_id,
+    }
+    
+def get_admin_stats(db: Session, admin_user_id: uuid.UUID) -> dict:
+    # ریتینگ‌ها
+    ratings = db.execute(
+        select(ChatRating.stars, func.count().label("count"))
+        .where(ChatRating.agent_user_id == admin_user_id)
+        .group_by(ChatRating.stars)
+        .order_by(ChatRating.stars)
+    ).all()
+
+    rating_breakdown = {i: 0 for i in range(1, 6)}
+    total_ratings = 0
+    total_stars = 0
+    for stars, count in ratings:
+        rating_breakdown[stars] = count
+        total_ratings += count
+        total_stars += stars * count
+
+    avg_rating = round(total_stars / total_ratings, 2) if total_ratings else None
+
+    # میانگین زمان پاسخ
+    avg_response = db.scalar(
+        select(func.avg(ChatConversation.first_response_seconds))
+        .where(
+            ChatConversation.assigned_agent_user_id == admin_user_id,
+            ChatConversation.first_response_seconds.is_not(None),
+        )
+    )
+
+    return {
+        "rating_breakdown": rating_breakdown,
+        "total_ratings": total_ratings,
+        "average_rating": avg_rating,
+        "average_first_response_seconds": round(avg_response, 1) if avg_response else None,
     }

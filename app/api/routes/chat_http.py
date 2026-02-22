@@ -153,7 +153,7 @@ def get_thread_simple(
 
 
 # --------------------
-# Admin Tickets
+# Admin Tickets & ِ Stats
 # --------------------
 
 @router.get("/dashboard/tickets")
@@ -162,6 +162,14 @@ def admin_ticket_counts(
     admin: User = Depends(get_current_admin_user),
 ):
     return chat_service.admin_ticket_counts(db)
+
+@router.get("/admin/stats/{admin_user_id}")
+def get_admin_stats(
+    admin_user_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin_user),
+):
+    return chat_service.get_admin_stats(db, admin_user_id)
 
 
 # --------------------
