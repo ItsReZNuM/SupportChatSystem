@@ -62,10 +62,12 @@ class SimpleChatMessageOut(BaseModel):
     is_admin: bool
     body: str
     created_at: datetime
+    file_url: Optional[str] = None 
     
 class ConversationMetaOut(BaseModel):
     id: uuid.UUID
     label: Optional[str] = None
+    status: Optional[str] = None  
     guest_email: Optional[EmailStr] = None
     guest_display_name: Optional[str] = None
 

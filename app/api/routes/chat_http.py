@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user, get_current_admin_user, get_current_user_optional
@@ -162,3 +162,20 @@ def admin_ticket_counts(
     admin: User = Depends(get_current_admin_user),
 ):
     return chat_service.admin_ticket_counts(db)
+
+
+# --------------------
+# Upload Files
+# --------------------
+
+@router.post("/conversations/upload/{conversation_id}")
+def upload_chat_file(
+    conversation_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    try:
+        path = chat_service.save_chat_file(file)
+        return {"file_url": path}
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))

@@ -4,12 +4,36 @@ import uuid
 from datetime import datetime
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy import select, func, update, and_
+from fastapi import UploadFile
+import os
+import shutil
 
 from app.models.user import User
 from app.models.chat import (
     ChatConversation, ChatParticipant, ChatMessage, ChatRating,
     ConversationStatus, ParticipantRole
 )
+
+ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "heic", "heif"}
+MAX_FILE_SIZE = 3 * 1024 * 1024  # 3MB
+
+def save_chat_file(file: UploadFile, upload_dir: str = "uploads/chat") -> str:
+    ext = file.filename.rsplit(".", 1)[-1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise ValueError(f"File type not allowed: {ext}")
+
+    contents = file.file.read()
+    if len(contents) > MAX_FILE_SIZE:
+        raise ValueError("File size exceeds 3MB limit")
+
+    os.makedirs(upload_dir, exist_ok=True)
+    filename = f"{uuid.uuid4()}.{ext}"
+    path = os.path.join(upload_dir, filename)
+
+    with open(path, "wb") as f:
+        f.write(contents)
+
+    return path  
 
 def create_conversation(
     db: Session,
@@ -85,6 +109,7 @@ def get_thread_simple(db: Session, conversation_id: uuid.UUID, limit: int, offse
     meta = {
         "id": conv.id,
         "label": conv.label,
+        "status": conv.status,
         "guest_email": customer.contact_email if customer and customer.guest_id is not None else None,
         "guest_display_name": customer.display_name if customer and customer.guest_id is not None else None,
     }
@@ -166,6 +191,7 @@ def add_customer_message(
     body: str,
     current_user: User | None,
     guest_id: uuid.UUID | None,
+    file_url: str | None = None, 
 ) -> tuple[dict, bool]:
     conv = db.get(ChatConversation, conversation_id)
     if not conv:
@@ -199,7 +225,7 @@ def add_customer_message(
         sender_participant_id=sender.id,
         body=body,
         created_at=datetime.utcnow(),
-
+        file_url=file_url,
         guest_display_name=sender.display_name if is_guest else None,
         guest_contact_email=sender.contact_email if is_guest else None,
     )
@@ -531,9 +557,12 @@ def admin_ticket_counts(db: Session) -> dict:
         .group_by(ChatConversation.status)
     ).all()
 
-    counts = {"open": 0, "in_progress": 0, "closed": 0}
+    counts = {"open": 0, "in_progress": 0, "closed": 0, "total": 0}
+    sum = 0
     for status, count in rows:
         counts[status] = count
+        sum += count
+    counts["total"] = sum
     return counts
 
 def get_conversation_summary(db: Session, conversation_id: uuid.UUID) -> dict:

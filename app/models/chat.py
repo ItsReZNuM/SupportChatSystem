@@ -127,6 +127,10 @@ class ChatMessage(Base):
         default=uuid.uuid4,
     )
 
+    file_url: Mapped[str | None] = mapped_column(
+        String(500), nullable=True
+    )
+
     conversation_id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True),
         ForeignKey("chat_conversations.id", ondelete="CASCADE"),
@@ -141,7 +145,7 @@ class ChatMessage(Base):
         index=True,
     )
 
-    body: Mapped[str] = mapped_column(Text, nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

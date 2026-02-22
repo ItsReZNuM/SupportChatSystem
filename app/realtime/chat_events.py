@@ -216,9 +216,10 @@ async def send_message(sid, data, *args):
 
     conv_id = data.get("conversation_id")
     body = (data.get("body") or "").strip()
-
-    if not conv_id or not body:
-        await sio.emit("error", {"message": "conversation_id/body required"}, to=sid)
+    file_url = data.get("file_url") or None
+    
+    if not conv_id or (not body and not file_url):
+        await sio.emit("error", {"message": "body or file_url required"}, to=sid)
         return
 
     ident = _identity_key(sess)
@@ -391,9 +392,10 @@ async def admin_send_message(sid, data, *args):
 
     conv_id = data.get("conversation_id")
     body = (data.get("body") or "").strip()
-
-    if not conv_id or not body:
-        await sio.emit("error", {"message": "conversation_id/body required"}, to=sid)
+    file_url = data.get("file_url") or None
+    
+    if not conv_id or (not body and not file_url):
+        await sio.emit("error", {"message": "conversation_id/body or file_url required"}, to=sid)
         return
 
     key = f"rl:chat:admin_msg:user:{sess['user_id']}:{conv_id}"
