@@ -615,6 +615,18 @@ def get_admin_stats(db: Session, admin_user_id: uuid.UUID) -> dict:
 
     avg_rating = round(total_stars / total_ratings, 2) if total_ratings else None
 
+    satisfying_percentage = ((avg_rating - 1) / 4) * 100
+    
+    sad = happy = neutral = 0
+    for i in range(1,6):
+        if i == 1 or i == 2:
+            sad += rating_breakdown[i]
+        elif i == 3 :
+            neutral += rating_breakdown[i]
+        else:
+            happy += rating_breakdown[i]        
+    
+    
     # میانگین زمان پاسخ
     avg_response = db.scalar(
         select(func.avg(ChatConversation.first_response_seconds))
@@ -624,9 +636,14 @@ def get_admin_stats(db: Session, admin_user_id: uuid.UUID) -> dict:
         )
     )
 
+    faces = {
+        "sad" : sad,
+        "neutral": neutral,
+        "happy": happy,
+    }
+    
     return {
-        "rating_breakdown": rating_breakdown,
-        "total_ratings": total_ratings,
-        "average_rating": avg_rating,
+        "faces": faces,
+        "satisfying percentage": satisfying_percentage,
         "average_first_response_seconds": round(avg_response, 1) if avg_response else None,
     }
