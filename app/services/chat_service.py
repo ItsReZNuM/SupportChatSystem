@@ -615,7 +615,10 @@ def get_admin_stats(db: Session, admin_user_id: uuid.UUID) -> dict:
 
     avg_rating = round(total_stars / total_ratings, 2) if total_ratings else None
 
-    satisfying_percentage = ((avg_rating - 1) / 4) * 100
+    if avg_rating is not None:
+        satisfying_percentage = ((avg_rating - 1) / 4) * 100
+    else:
+        satisfying_percentage = 0
     
     sad = happy = neutral = 0
     for i in range(1,6):
