@@ -28,12 +28,11 @@ def save_chat_file(file: UploadFile, upload_dir: str = "uploads/chat") -> str:
 
     os.makedirs(upload_dir, exist_ok=True)
     filename = f"{uuid.uuid4()}.{ext}"
-    path = os.path.join(upload_dir, filename)
-
-    with open(path, "wb") as f:
+    
+    with open(os.path.join(upload_dir, filename), "wb") as f:
         f.write(contents)
 
-    return path  
+    return f"/static/chat/{filename}"
 
 def create_conversation(
     db: Session,
@@ -123,6 +122,7 @@ def get_thread_simple(db: Session, conversation_id: uuid.UUID, limit: int, offse
             ChatMessage.id,
             ChatMessage.body,
             ChatMessage.created_at,
+            ChatMessage.file_url,
             ChatParticipant.role,
             ChatParticipant.user_id,
             ChatParticipant.guest_id,
@@ -135,7 +135,7 @@ def get_thread_simple(db: Session, conversation_id: uuid.UUID, limit: int, offse
     ).all()
 
     items = []
-    for msg_id, body, created_at, role, user_id, guest_id in rows:
+    for msg_id, body, created_at, file_url, role, user_id, guest_id in rows:
         is_admin = (role == ParticipantRole.agent)
         sender_id = user_id if is_admin else guest_id
 
@@ -145,6 +145,7 @@ def get_thread_simple(db: Session, conversation_id: uuid.UUID, limit: int, offse
             "is_admin": is_admin,
             "body": body,
             "created_at": created_at,
+            "file_url": file_url,
         })
 
     return {"conversation": meta, "items": items, "total": total}
@@ -248,6 +249,7 @@ def add_customer_message(
 
         "guest_display_name": msg.guest_display_name,
         "guest_contact_email": msg.guest_contact_email,
+        "file_url": msg.file_url,
     }, is_new_conversation
 
 
@@ -258,6 +260,7 @@ def add_admin_message(
     conversation_id: uuid.UUID,
     admin_user: User,
     body: str,
+    file_url: str | None = None,
 ) -> dict:
     conv = db.get(ChatConversation, conversation_id)
     if not conv:
@@ -283,7 +286,7 @@ def add_admin_message(
         sender_participant_id=agent.id,
         body=body,
         created_at=datetime.utcnow(),
-
+        file_url=file_url,
         guest_display_name=None,
         guest_contact_email=None,
     )
@@ -310,6 +313,7 @@ def add_admin_message(
 
         "guest_display_name": None,
         "guest_contact_email": None,
+        "file_url": msg.file_url,
     }
 
 
@@ -460,8 +464,9 @@ def admin_list_conversations(
 
             "last_message": {
                 "id": last_msg.id,
-                "body": last_msg.body,
+                "body": last_msg.body if last_msg.body else "Image/Attachment",
                 "created_at": last_msg.created_at,
+                "file_url": last_msg.file_url,
             } if last_msg else None,
 
             "customer_email": customer.contact_email if customer else None,

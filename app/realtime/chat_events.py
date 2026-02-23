@@ -60,6 +60,7 @@ def _public_msg_payload(msg: dict) -> dict:
         else msg["created_at"],
         "sender_id": str(msg["sender_id"]),
         "is_admin": bool(msg["is_admin"]),
+        "file_url": msg.get("file_url"),
     }
 
 
@@ -249,6 +250,7 @@ async def send_message(sid, data, *args):
             body=body,
             current_user=current_user,
             guest_id=guest_id,
+            file_url=file_url,
         )
 
         payload = _public_msg_payload(msg)
@@ -296,6 +298,7 @@ async def send_message(sid, data, *args):
                     "last_message": {
                         "body": payload["body"],
                         "created_at": payload["created_at"],
+                        "file_url": payload["file_url"],
                     },
                     "conversation": {
                         "id": conv_id,
@@ -419,6 +422,7 @@ async def admin_send_message(sid, data, *args):
             conversation_id=uuid.UUID(conv_id),
             admin_user=admin_user,
             body=body,
+            file_url=file_url,
         )
 
         payload = _public_msg_payload(msg)
@@ -433,6 +437,7 @@ async def admin_send_message(sid, data, *args):
                 "last_message": {
                     "body": payload["body"],
                     "created_at": payload["created_at"],
+                    "file_url": payload["file_url"],
                 },
             },
             room=ROOM_ADMINS,

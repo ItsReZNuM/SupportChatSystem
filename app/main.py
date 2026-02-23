@@ -5,8 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.middleware.ip_ban import ip_ban_middleware
 from app.api.routes import auth, users
 from app.api.routes.chat_http import router as chat_http_router
-from app.realtime.socketio_server import sio  # همون sio اصلی
-import app.realtime.chat_events  # noqa: F401  ← register کردن همه @sio.event ها
+from app.realtime.socketio_server import sio  
+import app.realtime.chat_events  
+from fastapi.staticfiles import StaticFiles
 
 fastapi_app = FastAPI(title="Auth MVP")
 fastapi_app.middleware("http")(ip_ban_middleware)
@@ -22,6 +23,8 @@ fastapi_app.add_middleware(
 fastapi_app.include_router(auth.router)
 fastapi_app.include_router(users.router)
 fastapi_app.include_router(chat_http_router)
+
+fastapi_app.mount("/static", StaticFiles(directory="uploads"), name="static")
 
 @fastapi_app.get("/", tags=["Root"])
 def start_func():

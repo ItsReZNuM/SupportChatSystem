@@ -37,7 +37,7 @@ class LastMessageOut(BaseModel):
     id: uuid.UUID
     body: str
     created_at: datetime
-
+    file_url: Optional[str] = None
 
 class ConversationListItem(BaseModel):
     id: uuid.UUID
