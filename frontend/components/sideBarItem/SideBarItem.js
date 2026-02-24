@@ -27,7 +27,7 @@ export default function SideBarItem({
                 route === link && "text-white bg-blue-500"
             } ${theme === "dark" ? "text-gray-400" : "text-gray-500"} transition-all duration-300 hover:text-white hover:bg-blue-500`}
         >
-            {title === "داشبورد" && <Badge />}
+            {/* {title === "داشبورد" && <Badge />} */}
             <Link href={link} className="flex justify-center items-center">
                 {icon}
             </Link>

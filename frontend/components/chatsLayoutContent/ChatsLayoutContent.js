@@ -19,7 +19,6 @@ export default function ChatsLayoutContent({ children }) {
     const { data, hasNextPage, fetchNextPage, isFetchingNextPage, status } =
         useRoomInfiniteQuery();
     const rooms = data?.pages?.flatMap((p) => p.items) ?? [];
-    console.log(rooms);
     const showListOnMobile = roomId == null;
     useEffect(() => {
         const observer = new IntersectionObserver(

@@ -4,6 +4,7 @@ import {
     faFaceSmile,
     faPaperclip,
     faPaperPlane,
+    faSpinner,
     faUser,
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
@@ -99,7 +100,6 @@ export default function ClientChatScreen({ closeChatWidget, chatWidgetState }) {
         if (!socket.connected) {
             socket.once("connect", () => {
                 console.log("*connected*");
-                console.log(`join con to ${conversation_id}`);
                 socket.emit("join_conversation", { conversation_id });
                 socket.emit("send_message", { conversation_id, body: message });
             });
@@ -109,7 +109,26 @@ export default function ClientChatScreen({ closeChatWidget, chatWidgetState }) {
 
         setMessage("");
     };
+    const loadMore = useRef(null);
 
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (
+                    entries[0].isIntersecting &&
+                    hasNextPage &&
+                    !isFetchingNextPage
+                ) {
+                    fetchNextPage();
+                }
+            },
+            { threshold: 1 },
+        );
+        if (loadMore.current) observer.observe(loadMore.current);
+        return () => {
+            if (loadMore.current) observer.unobserve(loadMore.current);
+        };
+    }, [loadMore, hasNextPage, fetchNextPage, isFetchingNextPage]);
     useEffect(() => {
         const sessionRaw = localStorage.getItem("chat_session_key");
         if (!sessionRaw) return;
@@ -202,6 +221,20 @@ export default function ClientChatScreen({ closeChatWidget, chatWidgetState }) {
                         showForm={showForm}
                         setShowForm={setShowForm}
                     />
+                    <div
+                        ref={loadMore}
+                        className="flex justify-center items-center text-xs text-gray-400 gap-2 mb-2"
+                    >
+                        {isFetchingNextPage && (
+                            <>
+                                <FontAwesomeIcon
+                                    icon={faSpinner}
+                                    className="animate-spin"
+                                />
+                                در حال بارگیری
+                            </>
+                        )}
+                    </div>
                     <div className="messages">
                         {flatMessages.map((msg) => {
                             return (

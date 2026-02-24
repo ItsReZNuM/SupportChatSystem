@@ -10,11 +10,9 @@ export default function RateToSupport({ setShowRating }) {
     const router = useRouter();
 
     const submitRating = () => {
-        console.log(router);
         const { conversation_id, guest_id } = JSON.parse(
             localStorage.getItem("chat_session_key"),
         );
-        console.log(conversation_id, guest_id);
         const socket = getSocket({ guest_id });
         socket.emit("rate_conversation", {
             conversation_id,

@@ -41,8 +41,8 @@ export default function DashboardPageContent() {
 
     const { data: adminStatistics, status: adminStatisticStatus } =
         useStatisticsQuery(adminIdentityData?.id);
-    console.log(adminStatisticStatus);
-    console.log(adminStatistics);
+    const finalStatisticStatus =
+        adminIdStatus === "error" ? "error" : adminStatisticStatus;
     const rooms = roomsData?.pages?.flatMap((p) => p.items) ?? [];
     const { data: ticketsStatistics, status: ticketsStatisticsStatus } =
         useOpenChatsQuery();
@@ -59,7 +59,7 @@ export default function DashboardPageContent() {
                     <div className="section">
                         <div className="statistics-items-container">
                             <div className="row flex flex-wrap">
-                                {adminStatisticStatus === "pending" ? (
+                                {finalStatisticStatus === "pending" ? (
                                     <>
                                         <div className="col w-full sm:w-1/2 lg:w-1/4 p-2">
                                             <StatisticsItemLoading />
@@ -74,7 +74,7 @@ export default function DashboardPageContent() {
                                             <StatisticsItemLoading />
                                         </div>
                                     </>
-                                ) : adminStatisticStatus === "success" ? (
+                                ) : finalStatisticStatus === "success" ? (
                                     <>
                                         <div className="col w-full sm:w-1/2 lg:w-1/4 p-2">
                                             <StatisticsItem
@@ -103,8 +103,9 @@ export default function DashboardPageContent() {
                                                     "میانگین زمان اولین پاسخ"
                                                 }
                                                 info={
-                                                    (adminStatistics?.average_first_response_seconds ? adminStatistics?.average_first_response_seconds : 0) +
-                                                    "s"
+                                                    (adminStatistics?.average_first_response_seconds
+                                                        ? adminStatistics?.average_first_response_seconds
+                                                        : 0) + "s"
                                                 }
                                                 icon={
                                                     <FontAwesomeIcon
@@ -189,7 +190,7 @@ export default function DashboardPageContent() {
                                         </div>
                                     </>
                                 ) : (
-                                    adminStatisticStatus === "error" && (
+                                    finalStatisticStatus === "error" && (
                                         <div className="error-container p-2 w-full">
                                             <FaildToFetchStatistics />
                                         </div>

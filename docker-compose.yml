@@ -20,7 +20,9 @@ services:
       - "6379:6379"
 
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: fastapi
     restart: always
     depends_on:
@@ -32,7 +34,9 @@ services:
       - "8000:8000"
 
   celery_worker:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: celery_worker
     restart: always
     command: >
@@ -46,7 +50,9 @@ services:
       - .env.docker
 
   flower:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: flower
     restart: always
     command: >
@@ -60,5 +66,20 @@ services:
     env_file:
       - .env.docker
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - INTERNAL_API_URL=http://api:8000
+      
 volumes:
   postgres_data:

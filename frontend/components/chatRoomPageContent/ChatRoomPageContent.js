@@ -55,8 +55,6 @@ export default function ChatRoomPageContent({ param }) {
         setMessage("");
     };
 
-    console.log(messages);
-
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
@@ -65,7 +63,6 @@ export default function ChatRoomPageContent({ param }) {
                     hasNextPage &&
                     !isFetchingNextPage
                 ) {
-                    console.log("hellop");
                     fetchNextPage();
                 }
             },
@@ -92,7 +89,6 @@ export default function ChatRoomPageContent({ param }) {
         socket.on("connect", onConnect);
 
         const onNewMessage = (msg) => {
-            console.log(msg);
             setNewMessages((prev) => [...prev, msg]);
         };
         socket.on("closed", () => {
@@ -130,17 +126,33 @@ export default function ChatRoomPageContent({ param }) {
                     <div
                         className={`chat-area w-full h-full p-5 flex flex-col overflow-y-scroll ${theme == "dark" ? "dark-gray-scroll" : "gray-scroll"} `}
                     >
+                        <div
+                            ref={loadMore}
+                            className="load-more flex justify-center items-center text-xs text-gray-400 gap-2 mb-2"
+                        >
+                            {isFetchingNextPage && (
+                                <>
+                                    <FontAwesomeIcon
+                                        icon={faSpinner}
+                                        className="animate-spin"
+                                    />
+                                    در حال بارگیری
+                                </>
+                            )}
+                        </div>
                         {messagesStatus === "success"
-                            ? messages?.pages[0].items.map((message) => (
-                                  <MessageBox
-                                      key={message.id}
-                                      sender_id={message.sender_id}
-                                      me_id={info?.id}
-                                      messageBody={message.body}
-                                      messageTime={message.created_at}
-                                      fileURL={message.file_url}
-                                  />
-                              ))
+                            ? messages?.pages
+                                  ?.flatMap((p) => p.items)
+                                  .map((message) => (
+                                      <MessageBox
+                                          key={message.id}
+                                          sender_id={message.sender_id}
+                                          me_id={info?.id}
+                                          messageBody={message.body}
+                                          messageTime={message.created_at}
+                                          fileURL={message.file_url}
+                                      />
+                                  ))
                             : messagesStatus === "error" && (
                                   <FaildToFetchData
                                       size={"lg"}

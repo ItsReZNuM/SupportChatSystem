@@ -7,9 +7,11 @@
         |-- 4dbdc82aaaba_add_otp_session_id_and_resend_fields_to_.py
         |-- 5476d407fb28_guest_email_and_display_name.py
         |-- 63ae2ea2e8e2_add_is_admin_to_users.py
+        |-- 723074c592c1_rating_and_timing.py
         |-- 9036f7f58244_initial.py
         |-- 9217c91ec799_add_session_expires_at_to_otp_codes.py
         |-- a7f19c840dc3_add_chat_system.py
+        |-- bec7ffc4749a_add_file.py
         |-- bed9ae616c9f_remove_role.py
         |-- d00801e71c80_add_tables.py
     |-- env.py
@@ -54,6 +56,177 @@
         |-- email_tasks.py
         |-- __init__.py
     |-- main.py
+|-- frontend
+    |-- app
+        |-- dashboard
+            |-- chats
+                |-- [roomId]
+                    |-- page.js
+                |-- layout.js
+                |-- page.js
+            |-- layout.js
+            |-- page.js
+        |-- home
+            |-- page.js
+        |-- login
+            |-- tfa
+                |-- page.js
+            |-- layout.js
+            |-- page.js
+        |-- fonts.js
+        |-- globals.css
+        |-- layout.js
+        |-- page.js
+    |-- components
+        |-- adminIdentity
+            |-- AdminIdentity.js
+        |-- attachFile
+            |-- AttachFile.js
+        |-- authClientFormChat
+            |-- AuthClientFormChat.js
+        |-- badge
+            |-- badge.js
+        |-- blockOverlay
+            |-- BlockOverlay.js
+        |-- chatListItem
+            |-- ChatListItem.js
+        |-- chatListItemLoading
+            |-- ChatListItemLoading.js
+        |-- chatRoomHeader
+            |-- ChatRoomHeader.js
+        |-- chatRoomPageContent
+            |-- ChatRoomPageContent.js
+        |-- chatsLayoutContent
+            |-- ChatsLayoutContent.js
+        |-- chatsPageContent
+            |-- ChatsPageContent.js
+        |-- chatWidget
+            |-- ChatWidget.js
+        |-- clientChatScreen
+            |-- ClientChatScreen.js
+        |-- copy
+            |-- Copy.js
+        |-- customerInfoSideBar
+            |-- CustomerInfoSideBar.js
+        |-- dashboardPageContent
+            |-- DashboardPageContent.js
+        |-- emojiTab
+            |-- EmojiTab.js
+        |-- faildToFetchData
+            |-- FaildToFetchData.js
+        |-- faildToFetchRoom
+            |-- FaildToFetchRoom.js
+        |-- faildToFetchStatistics
+            |-- FaildToFetchStatistics.js
+        |-- floatingTitle
+            |-- FloatingTitle.js
+        |-- gusetAttachFile
+            |-- GuestAttachFile.js
+        |-- inputContainer
+            |-- InputContainer.js
+        |-- line
+            |-- Line.js
+        |-- loginPageContent
+            |-- LoginPageContent.js
+        |-- messageAreaInput
+            |-- MessageAreaInput.js
+        |-- messageBox
+            |-- MessageBox.js
+        |-- noMoreOpenChat
+            |-- NoMoreOpenChat.js
+        |-- openChatsItem
+            |-- OpenChatsItem.js
+        |-- openChatsItemLoading
+            |-- OpenChatsItemLoading.js
+        |-- otpTimer
+            |-- OtpTimer.js
+        |-- panelHeader
+            |-- PanelHeader.js
+        |-- problemLabel
+            |-- ProblemLabel.js
+        |-- problemMenu
+            |-- ProblemMenu.js
+        |-- queryProvider
+            |-- QueryProvider.js
+        |-- rateLimit
+            |-- RateLimit.js
+        |-- rateToSupport
+            |-- RateToSupport.js
+        |-- resLogOutBtn
+            |-- ResLogOutBtn.js
+        |-- resSideBar
+            |-- ResSideBar.js
+        |-- resSideBarIcon
+            |-- ResSideBarIcon.js
+        |-- resSideBarItem
+            |-- ResSideBarItem.js
+        |-- resThemeBtn
+            |-- ResThemeBtn.js
+        |-- sidBarThemeBtn
+            |-- SideBarThemeBtn.js
+        |-- sideBar
+            |-- SideBar.js
+        |-- sideBarItem
+            |-- SideBarItem.js
+        |-- sideBarlogOutBtn
+            |-- SideBarLogOutBtn.js
+        |-- statisticProgressItem
+            |-- StatisticProgressItem.js
+        |-- statisticProgressItemLoading
+            |-- StatisticProgressItemLoading.js
+        |-- statisticsItem
+            |-- StatisticsItem.js
+        |-- statisticsItemLoading
+            |-- StatisticsItemLoading.js
+        |-- themeBtn
+            |-- ThemeBtn.js
+    |-- hooks
+        |-- useAdminRoomSync.js
+        |-- useIdQuery.js
+        |-- useMessageInfiniteQuery.js
+        |-- useOpenChatsQuery.js
+        |-- useRoomInfiniteQuery.js
+        |-- useRoomInfoQuery.js
+        |-- useStatisticsQuery.js
+    |-- public
+        |-- fonts
+            |-- IRANSansXFaNum-Black.woff2
+            |-- IRANSansXFaNum-Bold.woff2
+            |-- IRANSansXFaNum-DemiBold.woff2
+            |-- IRANSansXFaNum-ExtraBlack.woff2
+            |-- IRANSansXFaNum-ExtraBold.woff2
+            |-- IRANSansXFaNum-Heavy.woff2
+            |-- IRANSansXFaNum-Light.woff2
+            |-- IRANSansXFaNum-Medium.woff2
+            |-- IRANSansXFaNum-Regular.woff2
+            |-- IRANSansXFaNum-Thin.woff2
+            |-- IRANSansXFaNum-UltraLight.woff2
+        |-- images
+            |-- darktelback.jpg
+            |-- telback.jpg
+    |-- store
+        |-- uiStore.js
+    |-- utils
+        |-- api.js
+        |-- checkEmpty.js
+        |-- date.js
+        |-- getCookie.js
+        |-- logOut.js
+        |-- socket.js
+        |-- validation.js
+    |-- .gitignore
+    |-- Dockerfile
+    |-- eslint.config.mjs
+    |-- jsconfig.json
+    |-- next.config.mjs
+    |-- package-lock.json
+    |-- package.json
+    |-- postcss.config.mjs
+    |-- proxy.js
+    |-- README.md
+|-- screenshots
+    |-- chat.png
+    |-- dashboard.png
 |-- tools
     |-- hash_password.py
 |-- .env
