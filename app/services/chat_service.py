@@ -647,6 +647,6 @@ def get_admin_stats(db: Session, admin_user_id: uuid.UUID) -> dict:
     
     return {
         "faces": faces,
-        "satisfying percentage": satisfying_percentage,
+        "satisfying_percentage": satisfying_percentage,
         "average_first_response_seconds": round(avg_response, 1) if avg_response else None,
     }
